@@ -9,7 +9,35 @@ OrbbecCamera::~OrbbecCamera() {
     close();
 }
 
+int OrbbecCamera::getExposure() {
+    if (!pipeline_) return -1;
+    try {
+        auto dev = pipeline_->getDevice();
+        if (dev && dev->isPropertySupported(OB_PROP_COLOR_EXPOSURE_INT, OB_PERMISSION_READ)) {
+            return dev->getIntProperty(OB_PROP_COLOR_EXPOSURE_INT);
+        }
+    } catch (...) {}
+    return -1;
+}
+
+bool OrbbecCamera::setExposure(int value) {
+    if (!pipeline_) return false;
+    try {
+        auto dev = pipeline_->getDevice();
+        if (dev && dev->isPropertySupported(OB_PROP_COLOR_EXPOSURE_INT, OB_PERMISSION_WRITE)) {
+            if (dev->isPropertySupported(OB_PROP_COLOR_AUTO_EXPOSURE_BOOL, OB_PERMISSION_WRITE)) {
+                dev->setBoolProperty(OB_PROP_COLOR_AUTO_EXPOSURE_BOOL, false);
+            }
+            dev->setIntProperty(OB_PROP_COLOR_EXPOSURE_INT, value);
+            return true;
+        }
+    } catch (...) {}
+    return false;
+}
+
 bool OrbbecCamera::open() {
+    width_ = 0;
+    height_ = 0;
     try {
         qDebug() << "--- Camera Open Started ---";
         
@@ -46,7 +74,11 @@ bool OrbbecCamera::open() {
             if (!colorProfile) {
                 colorProfile = colorProfiles->getProfile(0)->as<ob::VideoStreamProfile>();
             }
-            if (colorProfile) config->enableStream(colorProfile);
+            if (colorProfile) {
+                config->enableStream(colorProfile);
+                width_ = colorProfile->width();
+                height_ = colorProfile->height();
+            }
         }
 
         auto depthProfiles = pipeline_->getStreamProfileList(OB_SENSOR_DEPTH);

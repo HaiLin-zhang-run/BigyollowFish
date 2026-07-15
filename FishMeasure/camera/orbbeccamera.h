@@ -26,6 +26,12 @@ public:
     // 获取相机内参（成功open后调用）
     MorphoCalculator::Intrinsics colorIntrinsics() const { return intrinsics_; }
 
+    int width() const { return width_; }
+    int height() const { return height_; }
+    
+    int getExposure();
+    bool setExposure(int value);
+
 public slots:
     void startCapture();  // 在相机线程中运行
     void stopCapture();
@@ -44,4 +50,7 @@ private:
     bool      running_  = false;
 
     MorphoCalculator::Intrinsics intrinsics_;  // 相机内参缓存
+    
+    int width_ = 0;
+    int height_ = 0;
 };

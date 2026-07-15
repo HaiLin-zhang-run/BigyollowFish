@@ -176,6 +176,16 @@ void MainWindow::on_btnConnectCamera_clicked() {
             QMetaObject::invokeMethod(this, [this, success]() {
                 if (success) {
                     ui->btnConnectCamera->setText("断开");
+                    
+                    // 获取并显示分辨率和曝光时间
+                    ui->editResolution->setText(QString("%1 x %2").arg(camera_.width()).arg(camera_.height()));
+                    int exp = camera_.getExposure();
+                    if (exp > 0) {
+                        ui->editExposureTime->setText(QString::number(exp));
+                    } else {
+                        ui->editExposureTime->setText("自动/不支持");
+                    }
+                    
                     camera_.startCapture();
                 } else {
                     ui->btnConnectCamera->setText("连接");
@@ -192,7 +202,17 @@ void MainWindow::on_btnRefreshCamera_clicked() {
 }
 
 void MainWindow::on_btnSetExposure_clicked() {
-    QMessageBox::information(this, "提示", "曝光时间设置已发送");
+    bool ok;
+    int exp = ui->editExposureTime->text().toInt(&ok);
+    if (ok && exp > 0) {
+        if (camera_.setExposure(exp)) {
+            QMessageBox::information(this, "提示", "曝光时间设置成功");
+        } else {
+            QMessageBox::warning(this, "提示", "曝光时间设置失败，该型号可能不支持");
+        }
+    } else {
+        QMessageBox::warning(this, "提示", "请输入有效的数字");
+    }
 }
 
 void MainWindow::on_btnRefreshSerial_clicked() {
