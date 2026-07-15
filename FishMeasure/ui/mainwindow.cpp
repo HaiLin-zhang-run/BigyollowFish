@@ -45,17 +45,9 @@ void MainWindow::setupUiCustom()
     // Initialize serial ports
     ui->cbSerialPort->addItems(ScaleSerial::availablePorts());
     
-    // Initialize camera button to disabled until serial is connected
-    ui->btnConnectCamera->setEnabled(false);
-    
     // Connect serial port connected signal
     connect(&scaleSerial_, &ScaleSerial::connected, this, [this](bool ok) {
         ui->btnConnectSerial->setText(ok ? "断开" : "连接");
-        ui->btnConnectCamera->setEnabled(ok);
-        if (!ok && camera_.isOpen()) {
-            camera_.close();
-            ui->btnConnectCamera->setText("连接");
-        }
     });
 
     // 动态添加一个“上传图片”按钮
