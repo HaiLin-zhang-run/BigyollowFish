@@ -31,14 +31,17 @@ private slots:
     void onCameraError(const QString& err);
     
     // UI actions
-    void on_btnStartCamera_clicked();
-    void on_btnStopCamera_clicked();
+    void on_btnConnectCamera_clicked();
+    void on_btnRefreshCamera_clicked();
+    void on_btnSetExposure_clicked();
     void on_btnCapture_clicked();
     void on_btnClose_clicked();
     void on_btnTare_clicked();
     void on_btnZero_clicked();
     void on_btnBrowsePath_clicked();
     void on_btnConnectSerial_clicked();
+    void on_btnRefreshSerial_clicked();
+    void on_btnCalibrateScale_clicked();
     
     void on_btnConfirmFishId_clicked();
     void on_btnModifyFishId_clicked();

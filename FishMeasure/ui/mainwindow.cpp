@@ -46,15 +46,15 @@ void MainWindow::setupUiCustom()
     ui->cbSerialPort->addItems(ScaleSerial::availablePorts());
     
     // Initialize camera button to disabled until serial is connected
-    ui->btnStartCamera->setEnabled(false);
+    ui->btnConnectCamera->setEnabled(false);
     
     // Connect serial port connected signal
     connect(&scaleSerial_, &ScaleSerial::connected, this, [this](bool ok) {
         ui->btnConnectSerial->setText(ok ? "断开" : "连接");
-        ui->btnStartCamera->setEnabled(ok);
+        ui->btnConnectCamera->setEnabled(ok);
         if (!ok && camera_.isOpen()) {
             camera_.close();
-            ui->btnStartCamera->setText("打开相机");
+            ui->btnConnectCamera->setText("连接");
         }
     });
 
@@ -158,45 +158,58 @@ void MainWindow::onCameraFrame(QImage rgb, cv::Mat bgr, cv::Mat depth)
 
 void MainWindow::onWeightUpdated(double weight) {
     currentWeight_ = weight;
-    ui->lblWeight->setText(QString("当前重量: %1 g").arg(weight, 0, 'f', 1));
+    ui->editWeight->setText(QString("%1").arg(weight, 0, 'f', 1));
 }
 
 void MainWindow::onScaleStatusChanged(const QString& status) {
     ui->lblScaleStatus->setText(status);
 }
 
-void MainWindow::on_btnStartCamera_clicked() {
-    ui->btnStartCamera->setEnabled(false);
-    ui->btnStartCamera->setText("正在连接...");
-    
-    (void)QtConcurrent::run([this]() {
-        bool success = camera_.open();
-        
-        QMetaObject::invokeMethod(this, [this, success]() {
-            if (success) {
-                ui->btnStartCamera->setText("相机已开启");
-                camera_.startCapture();
-            } else {
-                ui->btnStartCamera->setText("打开相机");
-                ui->btnStartCamera->setEnabled(true);
-            }
-        }, Qt::QueuedConnection);
-    });
+void MainWindow::on_btnConnectCamera_clicked() {
+    if (camera_.isOpen()) {
+        ui->btnConnectCamera->setEnabled(false);
+        ui->btnConnectCamera->setText("断开中...");
+        (void)QtConcurrent::run([this]() {
+            camera_.close();
+            QMetaObject::invokeMethod(this, [this]() {
+                ui->btnConnectCamera->setText("连接");
+                ui->btnConnectCamera->setEnabled(true);
+            }, Qt::QueuedConnection);
+        });
+    } else {
+        ui->btnConnectCamera->setEnabled(false);
+        ui->btnConnectCamera->setText("连接中...");
+        (void)QtConcurrent::run([this]() {
+            bool success = camera_.open();
+            QMetaObject::invokeMethod(this, [this, success]() {
+                if (success) {
+                    ui->btnConnectCamera->setText("断开");
+                    camera_.startCapture();
+                } else {
+                    ui->btnConnectCamera->setText("连接");
+                }
+                ui->btnConnectCamera->setEnabled(true);
+            }, Qt::QueuedConnection);
+        });
+    }
 }
 
-void MainWindow::on_btnStopCamera_clicked() {
-    ui->btnStopCamera->setEnabled(false);
-    ui->btnStartCamera->setEnabled(false);
-    ui->btnStartCamera->setText("正在关闭...");
+void MainWindow::on_btnRefreshCamera_clicked() {
+    ui->cbCameraModel->clear();
+    ui->cbCameraModel->addItem("Orbbec Astra 2");
+}
 
-    (void)QtConcurrent::run([this]() {
-        camera_.close();
-        QMetaObject::invokeMethod(this, [this]() {
-            ui->btnStartCamera->setText("打开相机");
-            ui->btnStartCamera->setEnabled(true);
-            ui->btnStopCamera->setEnabled(true);
-        }, Qt::QueuedConnection);
-    });
+void MainWindow::on_btnSetExposure_clicked() {
+    QMessageBox::information(this, "提示", "曝光时间设置已发送");
+}
+
+void MainWindow::on_btnRefreshSerial_clicked() {
+    ui->cbSerialPort->clear();
+    ui->cbSerialPort->addItems(ScaleSerial::availablePorts());
+}
+
+void MainWindow::on_btnCalibrateScale_clicked() {
+    QMessageBox::information(this, "校准", "请将已知重量砝码放置在秤盘上进行校准");
 }
 
 void MainWindow::on_btnCapture_clicked() {
