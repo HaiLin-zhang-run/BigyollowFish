@@ -239,6 +239,7 @@ void MainWindow::on_btnCalibrateScale_clicked() {
 }
 
 void MainWindow::on_cbWeightUnit_currentIndexChanged(int /*index*/) {
+    scaleSerial_.setUnit(ui->cbWeightUnit->currentText());
     onWeightUpdated(currentWeight_);
 }
 

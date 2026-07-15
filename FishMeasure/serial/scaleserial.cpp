@@ -44,6 +44,13 @@ void ScaleSerial::disconnectPort() {
 
 void ScaleSerial::tare() { sendCmd("T"); }
 void ScaleSerial::zero() { sendCmd("Z"); }
+void ScaleSerial::setUnit(const QString& unitStr) {
+    if (unitStr.contains("kg", Qt::CaseInsensitive)) {
+        sendCmd("U1");
+    } else if (unitStr.contains("g", Qt::CaseInsensitive)) {
+        sendCmd("U2");
+    }
+}
 void ScaleSerial::calibrate(double standardGrams) { sendCmd(QString("C%1").arg(standardGrams, 0, 'f', 0)); }
 
 bool ScaleSerial::sendCmd(const QString& cmd) {
@@ -85,8 +92,18 @@ void ScaleSerial::parsePacket(const QByteArray& data) {
     if (unit == "kg") grams *= 1000.0;
     else if (unit == "lb") grams *= 453.592;
 
+    char sta2 = data[14];
+    bool isZero = (sta2 & 0x10) != 0;
+    bool isTare = (sta2 & 0x20) != 0;
+    bool isOverflow2 = (sta2 & 0x40) != 0;
+    
+    QString sta2Str;
+    if (isZero) sta2Str += "[零位]";
+    if (isTare) sta2Str += "[去皮]";
+    if (isOverflow2) sta2Str += "[溢出]";
+
     if (ok) emit weightUpdated(grams);
-    emit statusChanged(QString("%1 | %2 %3").arg(statusStr, weight, unit));
+    emit statusChanged(QString("%1 %2| %3 %4").arg(statusStr, sta2Str, weight, unit));
 }
 
 void ScaleSerial::onError(QSerialPort::SerialPortError err) {

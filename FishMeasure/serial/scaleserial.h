@@ -23,6 +23,7 @@ public slots:
     void disconnectPort();
     void tare();   // 去皮 "T\r\n"
     void zero();   // 归零 "Z\r\n"
+    void setUnit(const QString& unitStr); // 设置单位 "U1/U2"
     void calibrate(double standardGrams); // 校准
 
     bool isConnected() const { return port_ && port_->isOpen(); }
