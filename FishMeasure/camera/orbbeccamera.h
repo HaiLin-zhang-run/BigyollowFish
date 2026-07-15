@@ -31,8 +31,8 @@ public slots:
     void stopCapture();
 
 signals:
-    // 每帧发出 RGB图 + 深度Mat (CV_16U, 单位mm)
-    void frameReady(QImage rgb, cv::Mat depth);
+    // 每帧发出 RGB图 + BGR图 + 深度Mat (CV_16U, 单位mm)
+    void frameReady(QImage rgb, cv::Mat bgr, cv::Mat depth);
     void errorOccurred(const QString& msg);
     void cameraOpened(bool ok);
 

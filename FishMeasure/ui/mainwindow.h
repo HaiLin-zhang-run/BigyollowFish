@@ -8,6 +8,7 @@
 #include "../detection/morphocalculator.h"
 #include "../serial/scaleserial.h"
 #include <QtConcurrent>
+#include <QPushButton>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -24,7 +25,7 @@ public:
     ~MainWindow();
 
 private slots:
-    void onCameraFrame(QImage rgb, cv::Mat depth);
+    void onCameraFrame(QImage rgb, cv::Mat bgr, cv::Mat depth);
     void onWeightUpdated(double weight);
     void onScaleStatusChanged(const QString& status);
     void onCameraError(const QString& err);
@@ -41,6 +42,7 @@ private slots:
     
     void on_btnConfirmFishId_clicked();
     void on_btnModifyFishId_clicked();
+    void on_btnUploadImage_clicked();
     
 private:
     Ui::MainWindow *ui;
@@ -58,6 +60,8 @@ private:
     FishListWidget*      fishList_       = nullptr;
     
     double currentWeight_ = 0.0;
+    bool modelsLoaded_ = false;
+    QPushButton* btnUploadImage_ = nullptr;
 
     // 当前帧缓存（拍照时传给次界面做推理）
     cv::Mat currentRawBgr_;

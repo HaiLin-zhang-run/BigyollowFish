@@ -39,6 +39,7 @@ private:
     struct Point3D {
         float x, y, z;
         float r, g, b;
+        float nx, ny, nz;
     };
 
     std::vector<Point3D> points_;

@@ -57,17 +57,48 @@ void MainWindow::setupUiCustom()
             ui->btnStartCamera->setText("打开相机");
         }
     });
+
+    // 动态添加一个“上传图片”按钮
+    btnUploadImage_ = new QPushButton("上传本地图片进行检测", this);
+    btnUploadImage_->setMinimumHeight(40);
+    btnUploadImage_->setStyleSheet(
+        "QPushButton { font-weight: bold; font-size: 14px; background-color: #2b579a; color: white; border-radius: 4px; }"
+        "QPushButton:hover { background-color: #366bc0; }"
+        "QPushButton:disabled { background-color: #3f3f46; color: #858585; }"
+    );
+    btnUploadImage_->setEnabled(false); // 等待模型加载完成
+    ui->rightLayout->addWidget(btnUploadImage_);
+    connect(btnUploadImage_, &QPushButton::clicked, this, &MainWindow::on_btnUploadImage_clicked);
+    
+    // 初始化时禁用拍照按钮，等待模型加载
+    ui->btnCapture->setEnabled(false);
+    ui->btnCapture->setText("模型加载中...");
 }
 
 void MainWindow::initModules()
 {
-    // Load models
-    if (!fishDetector_.load(DETECTION_MODEL_PATH)) {
-        qWarning() << "Failed to load detection model:" << DETECTION_MODEL_PATH;
-    }
-    if (!kpDetector_.load(KEYPOINT_MODEL_PATH)) {
-        qWarning() << "Failed to load keypoint model:" << KEYPOINT_MODEL_PATH;
-    }
+    // 后台异步加载模型，避免阻塞 UI 启动
+    (void)QtConcurrent::run([this]() {
+        bool detOk = fishDetector_.load(DETECTION_MODEL_PATH);
+        if (!detOk) {
+            qWarning() << "Failed to load detection model:" << DETECTION_MODEL_PATH;
+        }
+        bool kpOk = kpDetector_.load(KEYPOINT_MODEL_PATH);
+        if (!kpOk) {
+            qWarning() << "Failed to load keypoint model:" << KEYPOINT_MODEL_PATH;
+        }
+        
+        QMetaObject::invokeMethod(this, [this, detOk, kpOk]() {
+            modelsLoaded_ = (detOk && kpOk);
+            if (modelsLoaded_) {
+                if (btnUploadImage_) btnUploadImage_->setEnabled(true);
+                ui->btnCapture->setEnabled(true);
+                ui->btnCapture->setText("拍照并测量");
+            } else {
+                ui->btnCapture->setText("模型加载失败");
+            }
+        }, Qt::QueuedConnection);
+    });
 }
 
 void MainWindow::on_btnConfirmFishId_clicked() {
@@ -115,17 +146,11 @@ void MainWindow::on_btnConnectSerial_clicked() {
     }
 }
 
-void MainWindow::onCameraFrame(QImage rgb, cv::Mat depth)
+void MainWindow::onCameraFrame(QImage rgb, cv::Mat bgr, cv::Mat depth)
 {
     // 主界面不做推理，只展示原始 RGB，保证帧率流畅
-    currentDepth_ = depth.clone();
-
-    // 缓存原始 BGR（拍照时用于推理）
-    cv::Mat bgr;
-    cv::cvtColor(cv::Mat(rgb.height(), rgb.width(), CV_8UC3,
-                         (void*)rgb.constBits(), rgb.bytesPerLine()),
-                 bgr, cv::COLOR_RGB2BGR);
-    currentRawBgr_ = bgr.clone();
+    currentDepth_ = depth;
+    currentRawBgr_ = bgr;
     currentImage_  = rgb;
 
     cameraPreview_->updateImage(rgb);
@@ -144,7 +169,7 @@ void MainWindow::on_btnStartCamera_clicked() {
     ui->btnStartCamera->setEnabled(false);
     ui->btnStartCamera->setText("正在连接...");
     
-    QtConcurrent::run([this]() {
+    (void)QtConcurrent::run([this]() {
         bool success = camera_.open();
         
         QMetaObject::invokeMethod(this, [this, success]() {
@@ -160,9 +185,18 @@ void MainWindow::on_btnStartCamera_clicked() {
 }
 
 void MainWindow::on_btnStopCamera_clicked() {
-    camera_.close();
-    ui->btnStartCamera->setText("打开相机");
-    ui->btnStartCamera->setEnabled(true);
+    ui->btnStopCamera->setEnabled(false);
+    ui->btnStartCamera->setEnabled(false);
+    ui->btnStartCamera->setText("正在关闭...");
+
+    (void)QtConcurrent::run([this]() {
+        camera_.close();
+        QMetaObject::invokeMethod(this, [this]() {
+            ui->btnStartCamera->setText("打开相机");
+            ui->btnStartCamera->setEnabled(true);
+            ui->btnStopCamera->setEnabled(true);
+        }, Qt::QueuedConnection);
+    });
 }
 
 void MainWindow::on_btnCapture_clicked() {
@@ -190,4 +224,40 @@ void MainWindow::on_btnClose_clicked() {
 
 void MainWindow::onCameraError(const QString& err) {
     QMessageBox::warning(this, "相机错误", err);
+}
+
+void MainWindow::on_btnUploadImage_clicked() {
+    QString path = QFileDialog::getOpenFileName(this, "选择图片", "", "Images (*.png *.jpg *.jpeg *.bmp)");
+    if (path.isEmpty()) return;
+
+    // 优先用 QImage 读取以支持包含中文的路径，然后转 cv::Mat
+    QImage qimg(path);
+    if (qimg.isNull()) {
+        QMessageBox::warning(this, "错误", "无法读取该图片！");
+        return;
+    }
+    
+    qimg = qimg.convertToFormat(QImage::Format_RGB888);
+    cv::Mat tmp(qimg.height(), qimg.width(), CV_8UC3, (void*)qimg.constBits(), qimg.bytesPerLine());
+    cv::Mat bgr;
+    cv::cvtColor(tmp, bgr, cv::COLOR_RGB2BGR);
+
+    // 伪造深度图 (无真实深度信息，3D测量结果将为0，但2D检测仍正常)
+    cv::Mat fakeDepth = cv::Mat::zeros(bgr.rows, bgr.cols, CV_16U);
+
+    // 伪造内参
+    float fx = bgr.cols;
+    float fy = bgr.rows;
+    float cx = bgr.cols / 2.0f;
+    float cy = bgr.rows / 2.0f;
+
+    auto* dlg = new CaptureDetailWindow(this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->setSaveInfo(ui->editSavePath->text(), ui->editFishId->text() + "_local");
+
+    dlg->show();
+    dlg->startDetection(bgr, fakeDepth,
+                        0.0, // 本地图片无真实重量
+                        fishDetector_, kpDetector_, morphoCalc_,
+                        fx, fy, cx, cy);
 }

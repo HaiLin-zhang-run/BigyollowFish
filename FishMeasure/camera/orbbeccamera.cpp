@@ -1,6 +1,7 @@
 #include "orbbeccamera.h"
 #include <QDebug>
 #include <libobsensor/ObSensor.hpp>
+#include <opencv2/imgproc.hpp>
 
 OrbbecCamera::OrbbecCamera(QObject* parent) : QObject(parent) {}
 
@@ -11,6 +12,17 @@ OrbbecCamera::~OrbbecCamera() {
 bool OrbbecCamera::open() {
     try {
         qDebug() << "--- Camera Open Started ---";
+        
+        // 先检查设备列表，避免在无设备时实例化 Pipeline 导致底层卡死或抛异常
+        ob::Context ctx;
+        auto devList = ctx.queryDeviceList();
+        if (devList->deviceCount() == 0) {
+            qWarning() << "No Orbbec device found!";
+            emit errorOccurred("未检测到相机设备，请检查物理连接！");
+            emit cameraOpened(false);
+            return false;
+        }
+
         qDebug() << "Creating pipeline...";
         pipeline_ = std::make_shared<ob::Pipeline>();
         
@@ -142,6 +154,12 @@ void OrbbecCamera::captureLoop() {
             QImage rgb(data, w, h, QImage::Format_RGB888);
             rgb = rgb.copy(); 
 
+            // 后台线程直接转换BGR，避免阻塞主界面
+            cv::Mat tmp(h, w, CV_8UC3, (void*)data);
+            cv::Mat bgr;
+            cv::cvtColor(tmp, bgr, cv::COLOR_RGB2BGR);
+            bgr = bgr.clone(); // 保证数据独立
+
             auto dFrame = depthFrame->as<ob::DepthFrame>();
             if (!dFrame) {
                 qDebug() << "Failed to cast to DepthFrame";
@@ -158,7 +176,7 @@ void OrbbecCamera::captureLoop() {
                 depthMat.convertTo(depthMat, CV_16U, scale);
 
             if (frameCount % 30 == 0) qDebug() << "Emitting frame..." << frameCount;
-            emit frameReady(rgb, depthMat);
+            emit frameReady(rgb, bgr, depthMat);
             frameCount++;
 
         } catch (const ob::Error& e) {

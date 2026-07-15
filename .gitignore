@@ -1,0 +1,19 @@
+# Qt and Build
+build/
+*/build/
+bin/
+*/bin/
+*.pro.user
+*.obj
+*.exe
+*.log
+.qtc_clangd/
+.vscode/
+
+# Large files & specific directories
+best.onnx
+fish_keypoint.onnx
+.agents
+onnxruntime-win-x64-1.21.0/
+OrbbecSDK_v2-main/
+界面.jpg
