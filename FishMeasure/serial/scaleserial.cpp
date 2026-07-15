@@ -44,6 +44,7 @@ void ScaleSerial::disconnectPort() {
 
 void ScaleSerial::tare() { sendCmd("T"); }
 void ScaleSerial::zero() { sendCmd("Z"); }
+void ScaleSerial::calibrate(double standardGrams) { sendCmd(QString("C%1").arg(standardGrams, 0, 'f', 0)); }
 
 bool ScaleSerial::sendCmd(const QString& cmd) {
     if (!port_ || !port_->isOpen()) return false;

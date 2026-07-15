@@ -5,6 +5,7 @@
 #include "capturedetailwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <QDebug>
 #include <opencv2/imgproc.hpp>
 
@@ -150,7 +151,12 @@ void MainWindow::onCameraFrame(QImage rgb, cv::Mat bgr, cv::Mat depth)
 
 void MainWindow::onWeightUpdated(double weight) {
     currentWeight_ = weight;
-    ui->editWeight->setText(QString("%1").arg(weight, 0, 'f', 1));
+    QString unit = ui->cbWeightUnit->currentText();
+    if (unit == "kg") {
+        ui->editWeight->setText(QString("%1").arg(weight / 1000.0, 0, 'f', 3));
+    } else {
+        ui->editWeight->setText(QString("%1").arg(weight, 0, 'f', 1));
+    }
 }
 
 void MainWindow::onScaleStatusChanged(const QString& status) {
@@ -221,7 +227,19 @@ void MainWindow::on_btnRefreshSerial_clicked() {
 }
 
 void MainWindow::on_btnCalibrateScale_clicked() {
-    QMessageBox::information(this, "校准", "请将已知重量砝码放置在秤盘上进行校准");
+    bool ok;
+    double standardWeight = QInputDialog::getDouble(this, "电子秤校准", 
+        "请将已知标准砝码放置在秤盘上，并输入其真实重量（克）:", 
+        1000.0, 0.1, 100000.0, 1, &ok);
+    if (ok && standardWeight > 0) {
+        scaleSerial_.calibrate(standardWeight);
+        QMessageBox::information(this, "校准", "校准指令已下发！\n"
+                                               "(注: 如果该秤不支持C[重量]格式，可能需要根据具体设备协议修改)");
+    }
+}
+
+void MainWindow::on_cbWeightUnit_currentIndexChanged(int /*index*/) {
+    onWeightUpdated(currentWeight_);
 }
 
 void MainWindow::on_btnCapture_clicked() {

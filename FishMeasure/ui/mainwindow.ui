@@ -91,10 +91,25 @@
           <item row="0" column="1"><widget class="QComboBox" name="cbSerialPort"/></item>
           <item row="0" column="2"><widget class="QPushButton" name="btnRefreshSerial"><property name="text"><string>刷新</string></property></widget></item>
           <item row="0" column="3"><widget class="QPushButton" name="btnConnectSerial"><property name="text"><string>连接</string></property></widget></item>
+          
           <item row="1" column="0"><widget class="QLabel" name="labelUnit"><property name="text"><string>单位</string></property></widget></item>
-          <item row="1" column="1" colspan="3"><widget class="QComboBox" name="cbWeightUnit"><item><property name="text"><string>kg</string></property></item></widget></item>
+          <item row="1" column="1" colspan="2"><widget class="QComboBox" name="cbWeightUnit"><item><property name="text"><string>kg</string></property></item><item><property name="text"><string>g</string></property></item></widget></item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="lblScaleStatus">
+            <property name="font"><font><pointsize>10</pointsize><weight>75</weight><bold>true</bold></font></property>
+            <property name="text"><string>未连接</string></property>
+            <property name="alignment"><set>Qt::AlignCenter</set></property>
+           </widget>
+          </item>
+          
           <item row="2" column="0"><widget class="QLabel" name="labelWeight"><property name="text"><string>重量</string></property></widget></item>
-          <item row="2" column="1"><widget class="QLineEdit" name="editWeight"><property name="readOnly"><bool>true</bool></property></widget></item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="editWeight">
+            <property name="readOnly"><bool>true</bool></property>
+            <property name="font"><font><pointsize>16</pointsize><weight>75</weight><bold>true</bold></font></property>
+            <property name="alignment"><set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set></property>
+           </widget>
+          </item>
           <item row="2" column="2" colspan="2">
            <layout class="QHBoxLayout" name="horizontalLayoutScaleBtns">
             <item><widget class="QPushButton" name="btnCalibrateScale"><property name="text"><string>校准</string></property></widget></item>
@@ -141,20 +156,7 @@
          </property>
         </spacer>
        </item>
-       <item>
-        <widget class="QLabel" name="lblScaleStatus">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>电子秤状态</string>
-         </property>
-        </widget>
-       </item>
+
        <item>
         <widget class="QPushButton" name="btnCapture">
          <property name="minimumSize">

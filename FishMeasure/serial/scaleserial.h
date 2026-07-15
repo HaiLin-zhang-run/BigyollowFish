@@ -23,6 +23,7 @@ public slots:
     void disconnectPort();
     void tare();   // 去皮 "T\r\n"
     void zero();   // 归零 "Z\r\n"
+    void calibrate(double standardGrams); // 校准
 
     bool isConnected() const { return port_ && port_->isOpen(); }
 

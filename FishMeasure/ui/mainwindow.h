@@ -42,6 +42,7 @@ private slots:
     void on_btnConnectSerial_clicked();
     void on_btnRefreshSerial_clicked();
     void on_btnCalibrateScale_clicked();
+    void on_cbWeightUnit_currentIndexChanged(int index);
     
     void on_btnConfirmFishId_clicked();
     void on_btnModifyFishId_clicked();
