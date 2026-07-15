@@ -50,6 +50,42 @@ void main() {
 }
 )";
 
+// ─── 伪彩色映射函数 (Jet Colormap) ──────────────────────────────────────────
+static void getJetColor(float v, float vmin, float vmax, float& r, float& g, float& b) {
+    float dv = vmax - vmin;
+    if (dv < 1e-5f) { r = g = b = 1.0f; return; }
+    float ratio = (v - vmin) / dv; // 0.0 ~ 1.0
+
+    // 近红远蓝：在当前逻辑中，Z是负数(例如 -1000为远，-200为近)
+    // 此时 vmax 是近处，vmin 是远处。
+    // ratio = 1.0 对应近处，ratio = 0.0 对应远处。
+    // 典型的 Jet 是 0=蓝, 1=红，完美对应“远处蓝，近处红”。
+    
+    float c[3] = {1.0f, 1.0f, 1.0f};
+    if (ratio < 0.125f) {
+        c[0] = 0.0f;
+        c[1] = 0.0f;
+        c[2] = 0.5f + 4.0f * ratio;
+    } else if (ratio < 0.375f) {
+        c[0] = 0.0f;
+        c[1] = 4.0f * (ratio - 0.125f);
+        c[2] = 1.0f;
+    } else if (ratio < 0.625f) {
+        c[0] = 4.0f * (ratio - 0.375f);
+        c[1] = 1.0f;
+        c[2] = 1.0f - 4.0f * (ratio - 0.375f);
+    } else if (ratio < 0.875f) {
+        c[0] = 1.0f;
+        c[1] = 1.0f - 4.0f * (ratio - 0.625f);
+        c[2] = 0.0f;
+    } else {
+        c[0] = 1.0f - 4.0f * (ratio - 0.875f);
+        c[1] = 0.0f;
+        c[2] = 0.0f;
+    }
+    r = c[0]; g = c[1]; b = c[2];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 PointCloudViewer::PointCloudViewer(QWidget* parent)
     : QOpenGLWidget(parent) {
@@ -119,15 +155,10 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
             pt.y = Y;
             pt.z = Z;
 
-            // 取色
-            float colorU = u * scaleX;
-            float colorV = v * scaleY;
-            int cU = std::max(0, std::min(colorBgr.cols - 1, (int)colorU));
-            int cV = std::max(0, std::min(colorBgr.rows - 1, (int)colorV));
-            auto bgr = colorBgr.at<cv::Vec3b>(cV, cU);
-            pt.r = bgr[2] / 255.0f;
-            pt.g = bgr[1] / 255.0f;
-            pt.b = bgr[0] / 255.0f;
+            // 暂定白色，后面统一染伪彩色
+            pt.r = 1.0f;
+            pt.g = 1.0f;
+            pt.b = 1.0f;
 
             // 计算法线：取向右和向下的邻居像素点
             float nx = 0.0f, ny = 0.0f, nz = 1.0f; // 默认朝向相机
@@ -172,6 +203,13 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
     }
 
     qDebug() << "[PC] valid points:" << cnt << "Z range:" << minZ << "~" << maxZ;
+
+    // 二次染色：基于深度(Z)映射伪彩色 (Jet Colormap)
+    if (cnt > 0) {
+        for (auto& p : points_) {
+            getJetColor(p.z, minZ, maxZ, p.r, p.g, p.b);
+        }
+    }
 
     if (cnt > 0) {
         centerX_ = sumX / cnt;
