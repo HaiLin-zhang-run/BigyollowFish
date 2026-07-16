@@ -287,6 +287,43 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
             pCalc->setIntrinsics({fx, fy, cx, cy});
             morpho = pCalc->calculate(kps, depthCopy, annotated.cols, annotated.rows);
             morpho.weight = weight;
+            
+            // 计算黄蓝值 (b* channel)
+            int minX = rawBgrCopy.cols, minY = rawBgrCopy.rows, maxX = 0, maxY = 0;
+            bool validKps = false;
+            for (int i = 0; i < 17; ++i) {
+                if (kps.conf[i] > 0.2f && kps.pts[i].x > 0 && kps.pts[i].y > 0) {
+                    minX = std::min(minX, (int)kps.pts[i].x);
+                    minY = std::min(minY, (int)kps.pts[i].y);
+                    maxX = std::max(maxX, (int)kps.pts[i].x);
+                    maxY = std::max(maxY, (int)kps.pts[i].y);
+                    validKps = true;
+                }
+            }
+            if (validKps && maxX > minX && maxY > minY) {
+                minX = std::max(0, minX - 20);
+                minY = std::max(0, minY - 20);
+                maxX = std::min(rawBgrCopy.cols - 1, maxX + 20);
+                maxY = std::min(rawBgrCopy.rows - 1, maxY + 20);
+                
+                cv::Rect roi(minX, minY, maxX - minX, maxY - minY);
+                cv::Mat fishRoi = rawBgrCopy(roi);
+                cv::Mat labMat;
+                cv::cvtColor(fishRoi, labMat, cv::COLOR_BGR2Lab);
+                std::vector<cv::Mat> labChannels;
+                cv::split(labMat, labChannels);
+                double minVal, maxVal;
+                cv::Point minLoc, maxLoc;
+                cv::minMaxLoc(labChannels[2], &minVal, &maxVal, &minLoc, &maxLoc);
+                morpho.yellowBlueValue = maxVal - 128.0f;
+                
+                cv::Point yellowPt(maxLoc.x + minX, maxLoc.y + minY);
+                cv::circle(annotated, yellowPt, 8, cv::Scalar(0, 255, 255), -1);
+                cv::circle(annotated, yellowPt, 12, cv::Scalar(0, 100, 255), 2);
+                cv::putText(annotated, QString("b*:%1").arg(morpho.yellowBlueValue).toStdString(), 
+                            yellowPt + cv::Point(15, 0), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 255), 2);
+            }
+
             pKp->drawKeypoints(annotated, kps);
             pKp->drawMeasureLines(annotated, kps);
         } catch (const std::exception& e) {
@@ -459,6 +496,7 @@ void CaptureDetailWindow::onSaveClicked()
     ts << QString("尾柄高(mm),%1\n").arg(morpho_.caudPedHeight,  0, 'f', 1);
     ts << QString("背鳍长(mm),%1\n").arg(morpho_.dorsalFinLen,   0, 'f', 1);
     ts << QString("厚度(mm),%1\n").arg(morpho_.thickness,    0, 'f', 1);
+    ts << QString("黄蓝值,%1\n").arg(morpho_.yellowBlueValue, 0, 'f', 1);
     f.close();
 
     QMessageBox::information(this, "保存成功", "数据已保存到：\n" + path);

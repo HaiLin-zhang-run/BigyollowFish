@@ -9,8 +9,8 @@ MeasurePanelWidget::MeasurePanelWidget(QWidget* parent) : QWidget(parent) {
     titleLabel->setStyleSheet("font-weight: bold; font-size: 14px; color: #d4d4d4;");
     layout->addWidget(titleLabel);
     
-    tableWidget_ = new QTableWidget(16, 2, this);
-    tableWidget_->setHorizontalHeaderLabels(QStringList() << "测量项" << "数值(mm/g)");
+    tableWidget_ = new QTableWidget(17, 2, this);
+    tableWidget_->setHorizontalHeaderLabels(QStringList() << "测量项" << "数值");
     tableWidget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     tableWidget_->verticalHeader()->setVisible(false);
     
@@ -43,7 +43,7 @@ MeasurePanelWidget::MeasurePanelWidget(QWidget* parent) : QWidget(parent) {
     
     QStringList items = {
         "全长", "叉长", "体长", "吻长", "眼径", "头长", "头高", "体高",
-        "尾柄长", "尾柄高", "背鳍长", "胸鳍长", "腹鳍长", "臀鳍长", "厚度", "体重(g)"
+        "尾柄长", "尾柄高", "背鳍长", "胸鳍长", "腹鳍长", "臀鳍长", "厚度", "体重", "黄蓝值"
     };
     
     for (int i = 0; i < items.size(); ++i) {
@@ -67,7 +67,7 @@ void MeasurePanelWidget::updateData(const FishMorphology& morpho) {
         morpho.totalLength, morpho.forkLength, morpho.bodyLength, morpho.snoutLength,
         morpho.eyeDiameter, morpho.headLength, morpho.headHeight, morpho.bodyHeight,
         morpho.caudPedLength, morpho.caudPedHeight, morpho.dorsalFinLen, morpho.pectoralFinLen,
-        morpho.ventralFinLen, morpho.analFinLen, morpho.thickness, morpho.weight
+        morpho.ventralFinLen, morpho.analFinLen, morpho.thickness, morpho.weight, morpho.yellowBlueValue
     };
     
     for (int i = 0; i < values.size(); ++i) {

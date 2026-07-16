@@ -45,6 +45,7 @@ struct FishMorphology {
     float analFinLen     = 0; // 臀鳍长 p10→p11
     float thickness      = 0; // 厚度   深度图Z差 (mm)
     float weight         = 0; // 体重   串口电子秤 (g)
+    float yellowBlueValue = 0; // 黄蓝值 (b*通道)
 
     bool isValid() const { return totalLength > 10.0f; }
 };
