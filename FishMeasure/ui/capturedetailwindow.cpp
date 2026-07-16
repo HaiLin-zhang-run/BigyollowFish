@@ -339,9 +339,12 @@ void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
 
     // ── 3. 左侧三段图 ─────────────────────────────────────────────────────────
     if (hasFish) {
-        setSection(lblHead_, cropRegion(annotatedBgr, kps, 1, 4),  QSize(280, 135));
-        setSection(lblBody_, cropRegion(annotatedBgr, kps, 4, 9),  QSize(280, 135));
-        setSection(lblTail_, cropRegion(annotatedBgr, kps, 9, 11), QSize(280, 135));
+        // 鱼头: 吻端(1), 眼(2,3), 鳃盖后缘(15)
+        setSection(lblHead_, cropRegion(annotatedBgr, kps, {1, 2, 3, 15}),  QSize(280, 135));
+        // 鱼身: 胸鳍(4,14), 背鳍起点(5), 腹部(13), 臀鳍基部前(11), 臀鳍基部后(12)
+        setSection(lblBody_, cropRegion(annotatedBgr, kps, {4, 5, 11, 12, 13, 14}),  QSize(280, 135));
+        // 鱼尾: 尾柄背侧(6), 尾柄腹侧(9), 尾鳍基部(8), 尾鳍尖端(7)
+        setSection(lblTail_, cropRegion(annotatedBgr, kps, {6, 7, 8, 9}), QSize(280, 135));
     } else {
         lblHead_->setText("未检测到鱼体");
         lblBody_->setText("未检测到鱼体");
@@ -364,13 +367,13 @@ void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
 // ─────────────────────────────────────────────────────────────────────────────
 QPixmap CaptureDetailWindow::cropRegion(const cv::Mat& bgr,
                                         const FishKeypoints& kps,
-                                        int startPt, int endPt, int padding)
+                                        const std::vector<int>& ptsIdx, int padding)
 {
     int minX = bgr.cols, minY = bgr.rows, maxX = 0, maxY = 0;
     bool anyValid = false;
-    for (int i = startPt; i <= endPt; ++i) {
-        if (kps.conf[i - 1] < 0.2f) continue;
-        const auto& pt = kps.p(i);
+    for (int idx : ptsIdx) {
+        if (kps.conf[idx - 1] < 0.2f) continue;
+        const auto& pt = kps.p(idx);
         if (pt.x <= 0 || pt.y <= 0) continue;
         minX = std::min(minX, (int)pt.x);
         minY = std::min(minY, (int)pt.y);

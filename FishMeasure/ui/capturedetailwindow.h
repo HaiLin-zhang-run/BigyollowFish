@@ -84,7 +84,7 @@ private:
 
     // 辅助：按关键点范围裁剪图像
     QPixmap cropRegion(const cv::Mat& bgr, const FishKeypoints& kps,
-                       int startPt, int endPt, int padding = 20);
+                       const std::vector<int>& ptsIdx, int padding = 50);
 
     // 辅助：设置截图 label 的图
     void setSection(QLabel* lbl, const QPixmap& px, const QSize& hint);
