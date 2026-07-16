@@ -1,1 +1,0 @@
-git filter-branch --force --index-filter "git rm -rf --cached --ignore-unmatch *.onnx *.pdb *.dll *.lib FishMeasure/bin OrbbecSDK_v2-main onnxruntime-win-x64-1.21.0 build" --prune-empty --tag-name-filter cat -- --all
