@@ -61,6 +61,10 @@ private:
     QLabel* lblBody_;
     QLabel* lblTail_;
 
+    QPixmap headPix_;
+    QPixmap bodyPix_;
+    QPixmap tailPix_;
+
     // 中间上：检测结果图
     QLabel* lblDetection_;
 

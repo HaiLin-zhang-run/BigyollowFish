@@ -29,22 +29,24 @@ struct FishKeypoints {
 // 14项形态测量指标 (mm)
 // ─────────────────────────────────────────────
 struct FishMorphology {
-    float totalLength    = 0; // 全长   p1→p7
-    float forkLength     = 0; // 叉长   p1→p8
-    float bodyLength     = 0; // 体长   p1→p9
-    float snoutLength    = 0; // 吻长   p1→p3
-    float eyeDiameter    = 0; // 眼径   p2→p3
-    float headLength     = 0; // 头长   p1→p4
-    float headHeight     = 0; // 头高   p4处垂直
-    float bodyHeight     = 0; // 体高   p5处垂直
-    float caudPedLength  = 0; // 尾柄长 p9→p10
-    float caudPedHeight  = 0; // 尾柄高 p11处垂直
-    float dorsalFinLen   = 0; // 背鳍长 p5→p6
-    float pectoralFinLen = 0; // 胸鳍长 p14→附近
-    float ventralFinLen  = 0; // 腹鳍长 p13处
-    float analFinLen     = 0; // 臀鳍长 p10→p11
-    float thickness      = 0; // 厚度   深度图Z差 (mm)
-    float weight         = 0; // 体重   串口电子秤 (g)
+    float totalLength        = 0; // 1: 全长   p1→p7
+    float bodyLength         = 0; // 2: 体长   p1→p8
+    float headLength         = 0; // 3: 头长   p1→p15
+    float trunkLength        = 0; // 4: 躯干长 p15→p12
+    float tailLength         = 0; // 5: 尾长   p12→p8
+    float snoutLength        = 0; // 6: 吻长   p1→p2
+    float eyeLength          = 0; // 7: 眼长   p2→p3
+    float postEyeHeadLength  = 0; // 8: 眼后头长 p3→p15
+    float caudPedLength      = 0; // 9: 尾柄长 p10→p8
+    float bodyHeight         = 0; // 10: 体高  p5→p13
+    float caudPedHeight      = 0; // 11: 尾柄高 p6→p9
+    float pectoralFinLength  = 0; // 12: 胸鳍长 p4→p14
+    float caudalFinLength    = 0; // 13: 尾鳍长 p8→p7
+    float analFinLength      = 0; // 14: 臀鳍长 p12→p10
+    
+    // 额外物理/颜色指标
+    float thickness       = 0; // 厚度   深度图Z差 (mm)
+    float weight          = 0; // 体重   串口电子秤 (g)
     float yellowBlueValue = 0; // 黄蓝值 (b*通道)
 
     bool isValid() const { return totalLength > 10.0f; }

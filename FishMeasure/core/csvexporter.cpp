@@ -15,28 +15,29 @@ bool CsvExporter::exportRecords(const QString& filePath, const QList<FishRecord>
     out.setEncoding(QStringConverter::Utf8);
     if (!fileExists) {
         out << "\xEF\xBB\xBF"; 
-        out << "ID,Time,TotalLength,ForkLength,BodyLength,SnoutLength,EyeDiameter,HeadLength,HeadHeight,BodyHeight,CaudPedLength,CaudPedHeight,DorsalFinLen,PectoralFinLen,VentralFinLen,AnalFinLen,Thickness,Weight\n";
+        out << "ID,Time,TotalLength,BodyLength,HeadLength,TrunkLength,TailLength,SnoutLength,EyeLength,PostEyeHeadLength,CaudPedLength,BodyHeight,CaudPedHeight,PectoralFinLength,CaudalFinLength,AnalFinLength,Thickness,Weight,YellowBlueValue\n";
     }
 
     for (const auto& r : records) {
         out << r.id << ","
             << r.timestamp.toString("yyyy-MM-dd HH:mm:ss") << ","
             << r.morphology.totalLength << ","
-            << r.morphology.forkLength << ","
             << r.morphology.bodyLength << ","
-            << r.morphology.snoutLength << ","
-            << r.morphology.eyeDiameter << ","
             << r.morphology.headLength << ","
-            << r.morphology.headHeight << ","
-            << r.morphology.bodyHeight << ","
+            << r.morphology.trunkLength << ","
+            << r.morphology.tailLength << ","
+            << r.morphology.snoutLength << ","
+            << r.morphology.eyeLength << ","
+            << r.morphology.postEyeHeadLength << ","
             << r.morphology.caudPedLength << ","
+            << r.morphology.bodyHeight << ","
             << r.morphology.caudPedHeight << ","
-            << r.morphology.dorsalFinLen << ","
-            << r.morphology.pectoralFinLen << ","
-            << r.morphology.ventralFinLen << ","
-            << r.morphology.analFinLen << ","
+            << r.morphology.pectoralFinLength << ","
+            << r.morphology.caudalFinLength << ","
+            << r.morphology.analFinLength << ","
             << r.morphology.thickness << ","
-            << r.morphology.weight << "\n";
+            << r.morphology.weight << ","
+            << r.morphology.yellowBlueValue << "\n";
     }
 
     file.close();

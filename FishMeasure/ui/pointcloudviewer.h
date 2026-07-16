@@ -26,6 +26,8 @@ public:
                  float fx, float cy, float cx, float fy,
                  const cv::Rect& roiRect = cv::Rect());
 
+    bool saveToPlyBinary(const QString& filepath) const;
+
 protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;

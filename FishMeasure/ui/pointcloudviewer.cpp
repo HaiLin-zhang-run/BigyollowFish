@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <numeric>
 #include <QDebug>
+#include <QFile>
+#include <QTextStream>
 
 // ─── GLSL shaders ────────────────────────────────────────────────────────────
 static const char* VS_SRC = R"(
@@ -365,4 +367,30 @@ void PointCloudViewer::wheelEvent(QWheelEvent* e) {
     zoom_ *= factor;
     zoom_ = std::max(-50000.0f, std::min(-10.0f, zoom_));
     update();
+}
+
+bool PointCloudViewer::saveToPlyBinary(const QString& filepath) const {
+    if (points_.empty()) return false;
+    QFile file(filepath);
+    if (!file.open(QIODevice::WriteOnly)) return false;
+    
+    QTextStream headerStream(&file);
+    headerStream << "ply\n";
+    headerStream << "format binary_little_endian 1.0\n";
+    headerStream << "element vertex " << points_.size() << "\n";
+    headerStream << "property float x\n";
+    headerStream << "property float y\n";
+    headerStream << "property float z\n";
+    headerStream << "property float red\n";
+    headerStream << "property float green\n";
+    headerStream << "property float blue\n";
+    headerStream << "property float nx\n";
+    headerStream << "property float ny\n";
+    headerStream << "property float nz\n";
+    headerStream << "end_header\n";
+    headerStream.flush();
+    
+    file.write((const char*)points_.data(), points_.size() * sizeof(Point3D));
+    file.close();
+    return true;
 }

@@ -75,42 +75,80 @@ FishMorphology MorphoCalculator::calculate(
 
     FishMorphology m;
 
-    // ── 基于关键点的3D距离 ──
-    // 关键点对应规范(p1=吻端, p7=尾末, p8=尾叉, p9=尾柄始 ...)
-    m.totalLength    = dist3D(1, 7,  kps); // 全长
-    m.forkLength     = dist3D(1, 8,  kps); // 叉长
-    m.bodyLength     = dist3D(1, 9,  kps); // 体长
-    m.snoutLength    = dist3D(1, 3,  kps); // 吻长
-    m.eyeDiameter    = dist3D(2, 3,  kps); // 眼径
-    m.headLength     = dist3D(1, 4,  kps); // 头长
-    m.caudPedLength  = dist3D(9, 10, kps); // 尾柄长
-    m.dorsalFinLen   = dist3D(5, 6,  kps); // 背鳍长（近似）
-    m.analFinLen     = dist3D(10,11, kps); // 臀鳍长
+    // ── 基于关键点的3D距离与垂直高度 ──
+    m.totalLength        = dist3D(1, 7,  kps); // 1: 全长 p1->p7
+    m.bodyLength         = dist3D(1, 8,  kps); // 2: 体长 p1->p8
+    m.headLength         = dist3D(1, 15, kps); // 3: 头长 p1->p15
+    m.trunkLength        = dist3D(15,12, kps); // 4: 躯干长 p15->p12
+    m.tailLength         = dist3D(12, 8, kps); // 5: 尾长 p12->p8
+    m.snoutLength        = dist3D(1, 2,  kps); // 6: 吻长 p1->p2
+    m.eyeLength          = dist3D(2, 3,  kps); // 7: 眼长 p2->p3
+    m.postEyeHeadLength  = dist3D(3, 15, kps); // 8: 眼后头长 p3->p15
+    m.caudPedLength      = dist3D(10, 8, kps); // 9: 尾柄长 p10->p8
+    m.pectoralFinLength  = dist3D(4, 14, kps); // 12: 胸鳍长 p4->p14
+    m.caudalFinLength    = dist3D(8, 7,  kps); // 13: 尾鳍长 p8->p7
+    m.analFinLength      = dist3D(12,10, kps); // 14: 臀鳍长 p12->p10
 
     // ── 垂直高度（背腹方向，利用Y轴坐标差）──
-    // 头高：p4处，需要背侧和腹侧两点（简化用p4.y与p13.y差）
-    if (kps.conf[3] > 0.1f && kps.conf[12] > 0.1f) {
-        auto p4_3d  = to3D(kps.p(4),  kps.d(4));
-        auto p13_3d = to3D(kps.p(13), kps.d(13));
-        m.headHeight = vertDist(p4_3d, p13_3d);
-    }
-    // 体高：p5处（背鳍最高点到腹面p13附近）
+    // 10: 体高：p5到 p13
     if (kps.conf[4] > 0.1f && kps.conf[12] > 0.1f) {
         auto p5_3d  = to3D(kps.p(5),  kps.d(5));
         auto p13_3d = to3D(kps.p(13), kps.d(13));
         m.bodyHeight = vertDist(p5_3d, p13_3d);
     }
-    // 尾柄高：p11处
-    if (kps.conf[10] > 0.1f && kps.conf[9] > 0.1f) {
-        m.caudPedHeight = dist3D(10, 11, kps); // 简化：p10-p11垂直
+    
+    // 11: 尾柄高：p6 到 p9
+    if (kps.conf[5] > 0.1f && kps.conf[8] > 0.1f) {
+        auto p6_3d = to3D(kps.p(6), kps.d(6));
+        auto p9_3d = to3D(kps.p(9), kps.d(9));
+        m.caudPedHeight = vertDist(p6_3d, p9_3d); 
     }
 
-    // ── 厚度：深度图中鱼体区域的Z范围 ──
-    // 取p5(背最高)的Z与腹部Z差作为厚度估算
-    if (kps.d(5) > 0 && kps.d(13) > 0)
-        m.thickness = std::abs(kps.d(5) - kps.d(13));
+    // ── 厚度：寻找深度图中最靠近相机的点与鱼体背景(外缘)深度的差 ──
+    float z_top = 10000.0f;
+    float z_bg = 0.0f;
+    int minX = colorW, minY = colorH, maxX = 0, maxY = 0;
+    
+    // 1. 确定鱼体在彩色图上的 Bounding Box
+    for (int i = 0; i < 17; ++i) {
+        if (kps.conf[i] > 0.2f && kps.pts[i].x > 0 && kps.pts[i].y > 0) {
+            minX = std::min(minX, (int)kps.pts[i].x);
+            minY = std::min(minY, (int)kps.pts[i].y);
+            maxX = std::max(maxX, (int)kps.pts[i].x);
+            maxY = std::max(maxY, (int)kps.pts[i].y);
+        }
+    }
+    
+    // 2. 将 BB 转换到深度图坐标系，并在该区域内寻找最大与最小有效深度
+    if (maxX > minX && maxY > minY && !depthMap.empty()) {
+        float scaleX = (float)colorW / depthMap.cols;
+        float scaleY = (float)colorH / depthMap.rows;
+        
+        // 适当向内收缩边界，避免采集到过多背景板
+        int u0 = std::max(0, (int)std::round((minX + 10) / scaleX));
+        int v0 = std::max(0, (int)std::round((minY + 10) / scaleY));
+        int u1 = std::min(depthMap.cols - 1, (int)std::round((maxX - 10) / scaleX));
+        int v1 = std::min(depthMap.rows - 1, (int)std::round((maxY - 10) / scaleY));
 
-    // 体重：由串口秤填写（此处设0）
+        for (int v = v0; v <= v1; ++v) {
+            for (int u = u0; u <= u1; ++u) {
+                float d = depthMap.at<uint16_t>(v, u);
+                if (d > 100 && d < 3000) { // 限制合理探测范围 (10cm ~ 3m)
+                    z_top = std::min(z_top, d);
+                    z_bg  = std::max(z_bg, d);
+                }
+            }
+        }
+    }
+    
+    // 3. 计算厚度差值
+    if (z_top < 3000.0f && z_bg > z_top) {
+        m.thickness = z_bg - z_top;
+    } else {
+        m.thickness = 0;
+    }
+
+    // 体重：由外部串口秤提供
     m.weight = 0.0f;
 
     return m;

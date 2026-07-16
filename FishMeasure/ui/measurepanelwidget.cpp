@@ -42,8 +42,9 @@ MeasurePanelWidget::MeasurePanelWidget(QWidget* parent) : QWidget(parent) {
     )");
     
     QStringList items = {
-        "全长", "叉长", "体长", "吻长", "眼径", "头长", "头高", "体高",
-        "尾柄长", "尾柄高", "背鳍长", "胸鳍长", "腹鳍长", "臀鳍长", "厚度", "体重", "黄蓝值"
+        "1: 全长", "2: 体长", "3: 头长", "4: 躯干长", "5: 尾长", "6: 吻长", "7: 眼长",
+        "8: 眼后头长", "9: 尾柄长", "10: 体高", "11: 尾柄高", "12: 胸鳍长度", "13: 尾鳍长度", "14: 臀鳍长度",
+        "厚度", "体重", "黄蓝值"
     };
     
     for (int i = 0; i < items.size(); ++i) {
@@ -64,10 +65,10 @@ void MeasurePanelWidget::updateData(const FishMorphology& morpho) {
     if (!morpho.isValid()) return;
     
     QList<float> values = {
-        morpho.totalLength, morpho.forkLength, morpho.bodyLength, morpho.snoutLength,
-        morpho.eyeDiameter, morpho.headLength, morpho.headHeight, morpho.bodyHeight,
-        morpho.caudPedLength, morpho.caudPedHeight, morpho.dorsalFinLen, morpho.pectoralFinLen,
-        morpho.ventralFinLen, morpho.analFinLen, morpho.thickness, morpho.weight, morpho.yellowBlueValue
+        morpho.totalLength, morpho.bodyLength, morpho.headLength, morpho.trunkLength,
+        morpho.tailLength, morpho.snoutLength, morpho.eyeLength, morpho.postEyeHeadLength,
+        morpho.caudPedLength, morpho.bodyHeight, morpho.caudPedHeight, morpho.pectoralFinLength,
+        morpho.caudalFinLength, morpho.analFinLength, morpho.thickness, morpho.weight, morpho.yellowBlueValue
     };
     
     for (int i = 0; i < values.size(); ++i) {
