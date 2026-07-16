@@ -20,8 +20,8 @@
 class KeypointDetector {
 public:
     // 默认输入尺寸（可在运行时自动检测或手动指定）
-    static constexpr int DEFAULT_INPUT_W = 256;
-    static constexpr int DEFAULT_INPUT_H = 256;
+    static constexpr int DEFAULT_INPUT_W = 640;
+    static constexpr int DEFAULT_INPUT_H = 640;
 
     bool load(const std::string& modelPath);
     bool isLoaded() const { return onnx_.isLoaded(); }

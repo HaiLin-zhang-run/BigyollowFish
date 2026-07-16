@@ -91,17 +91,17 @@ CaptureDetailWindow::CaptureDetailWindow(QWidget* parent)
         return l;
     };
 
-    leftLayout->addWidget(makeSectionTitle("🐟 鱼头"));
+    leftLayout->addWidget(makeSectionTitle("鱼头"));
     lblHead_ = makeDarkLabel("检测中...");
     lblHead_->setMinimumHeight(140);
     leftLayout->addWidget(lblHead_);
 
-    leftLayout->addWidget(makeSectionTitle("🐟 鱼体"));
+    leftLayout->addWidget(makeSectionTitle("鱼体"));
     lblBody_ = makeDarkLabel("检测中...");
     lblBody_->setMinimumHeight(140);
     leftLayout->addWidget(lblBody_);
 
-    leftLayout->addWidget(makeSectionTitle("🐟 鱼尾"));
+    leftLayout->addWidget(makeSectionTitle("鱼尾"));
     lblTail_ = makeDarkLabel("检测中...");
     lblTail_->setMinimumHeight(140);
     leftLayout->addWidget(lblTail_);
@@ -271,18 +271,24 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
         bool hasFish = false;
 
         try {
-            auto det = pDet->detect(annotated);
-
-            if (det.isValid() && det.bbox.width > 0 && det.bbox.height > 0) {
-                hasFish = true;
-                pDet->drawDetection(annotated, det);
-                kps   = pKp->detect(annotated, det.bbox);
-                pCalc->setIntrinsics({fx, fy, cx, cy});
-                morpho = pCalc->calculate(kps, depthCopy, annotated.cols, annotated.rows);
-                morpho.weight = weight;
-                pKp->drawKeypoints(annotated, kps);
-                pKp->drawMeasureLines(annotated, kps);
-            }
+            qDebug() << "[Det] Starting detection, img=" << annotated.cols << "x" << annotated.rows;
+            // 注意：经分析发现 best.onnx 实际上是电子秤数字OCR检测模型，而不是鱼体目标检测！
+            // fish_keypoint.onnx (HRNet) 原生支持全图输入检测 17 个关键点
+            // 因此我们直接用全图范围运行关键点检测，忽略 FishDetector 的错误框
+            hasFish = true;
+            cv::Rect fullImgRoi(0, 0, annotated.cols, annotated.rows);
+            
+            qDebug() << "[Det] Running KeypointDetector on full image...";
+            kps = pKp->detect(annotated, fullImgRoi);
+            
+            qDebug() << "[Det] Keypoints done. kp[0] conf=" << kps.conf[0]
+                     << "pt=(" << kps.pts[0].x << "," << kps.pts[0].y << ")";
+                     
+            pCalc->setIntrinsics({fx, fy, cx, cy});
+            morpho = pCalc->calculate(kps, depthCopy, annotated.cols, annotated.rows);
+            morpho.weight = weight;
+            pKp->drawKeypoints(annotated, kps);
+            pKp->drawMeasureLines(annotated, kps);
         } catch (const std::exception& e) {
             qDebug() << "Exception in detection thread:" << e.what();
             hasFish = false;

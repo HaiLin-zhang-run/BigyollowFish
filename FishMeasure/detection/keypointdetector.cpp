@@ -46,21 +46,23 @@ FishKeypoints KeypointDetector::detect(
     std::vector<int64_t> shape = {1, 3, inputH_, inputW_};
     auto outputs = onnx_.run(blob, shape);
 
-    // 模型有3个输出:
-    // outputs[0]: bilinear_interp 热力图 [1,17,H',W']
-    // outputs[1]: top_k scores   [1,17,30]
-    // outputs[2]: top_k indices  [1,17,30]
+    // 模型实际有4个输出:
+    // outputs[0]: bilinear_interp 热力图 [1,17,H,W]  H,W == inputH, inputW（1:1，不是1/4!）
+    // outputs[1]: unsqueeze2_0.tmp_0     [1,17,H,W,1] (中间结果，不是scores)
+    // outputs[2]: top_k_v2_0.tmp_0       [1,17,30]    top_k scores
+    // outputs[3]: top_k_v2_0.tmp_1       [1,17,30]    top_k flat indices
     // 使用top_k直接解码（无需手动argmax）
 
-    if ((int)outputs.size() < 3) return {};
+    if ((int)outputs.size() < 4) return {};
 
-    const float*   scores  = outputs[1].GetTensorData<float>();
-    const int64_t* indices = outputs[2].GetTensorData<int64_t>();
+    const float*   scores  = outputs[2].GetTensorData<float>();
+    const int64_t* indices = outputs[3].GetTensorData<int64_t>();
 
     // 热力图尺寸（从output[0]的shape获取）
+    // 注意：此模型热力图与输入等尺寸（1:1），不是HRNet常见的1/4下采样！
     auto heatShape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
-    int heatH = (heatShape.size() >= 3) ? (int)heatShape[2] : inputH_/4;
-    int heatW = (heatShape.size() >= 4) ? (int)heatShape[3] : inputW_/4;
+    int heatH = (heatShape.size() >= 3) ? (int)heatShape[2] : inputH_;
+    int heatW = (heatShape.size() >= 4) ? (int)heatShape[3] : inputW_;
 
     return decodeTopK(scores, indices, heatW, heatH,
                       paddedRoi, cropW, cropH);
@@ -85,23 +87,20 @@ FishKeypoints KeypointDetector::decodeTopK(
         int heatRow = (int)(flatIdx / heatW);
         int heatCol = (int)(flatIdx % heatW);
 
-        // 热力图坐标 → input 坐标 (letterbox 后的大小，假定传入了 inputW 和 inputH)
-        // 注意：由于函数签名未变，我们从 heatW/heatH 反推 inputW/inputH (通常 heatW = inputW / 4)
-        // 但这里为了安全，我们可以直接传入 scale 和 pad 或者在外部计算好。
-        // 这里可以直接根据 cropW 和 cropH, heatW, heatH 计算
-        int inputW = heatW * 4;
-        int inputH = heatH * 4;
+        // 热力图坐标 → input 坐标 (由于直接拉伸缩放，热力图等比例对应 crop 区域)
+        int inputW = heatW; 
+        int inputH = heatH;
         
-        float letterboxX = (heatCol + 0.5f) / heatW * inputW;
-        float letterboxY = (heatRow + 0.5f) / heatH * inputH;
+        float inputX = (heatCol + 0.5f);
+        float inputY = (heatRow + 0.5f);
         
-        float scale = std::min((float)inputW / cropW, (float)inputH / cropH);
-        float padW = (inputW - cropW * scale) / 2.0f;
-        float padH = (inputH - cropH * scale) / 2.0f;
+        // 直接缩放比例
+        float scaleX = (float)cropW / inputW;
+        float scaleY = (float)cropH / inputH;
 
-        // letterbox坐标 → crop坐标
-        float cropX = (letterboxX - padW) / scale;
-        float cropY = (letterboxY - padH) / scale;
+        // input坐标 → crop坐标
+        float cropX = inputX * scaleX;
+        float cropY = inputY * scaleY;
 
         // crop坐标 → 原图坐标
         float origX = roi.x + cropX;

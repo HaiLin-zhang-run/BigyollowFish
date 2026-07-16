@@ -76,20 +76,10 @@ std::vector<float> OnnxHelper::imageToBlob(
     int targetW, int targetH,
     bool normalize, bool swapRB)
 {
-    // YOLO Letterbox padding
-    float scale = std::min((float)targetW / bgrImg.cols, (float)targetH / bgrImg.rows);
-    int newW = std::round(bgrImg.cols * scale);
-    int newH = std::round(bgrImg.rows * scale);
-    
+    // 直接拉伸缩放 (Direct Resize)
     cv::Mat resized;
-    cv::resize(bgrImg, resized, cv::Size(newW, newH));
-    
-    int top = (targetH - newH) / 2;
-    int bottom = targetH - newH - top;
-    int left = (targetW - newW) / 2;
-    int right = targetW - newW - left;
-    
-    cv::copyMakeBorder(resized, resized, top, bottom, left, right, cv::BORDER_CONSTANT, cv::Scalar(114, 114, 114));
+    cv::resize(bgrImg, resized, cv::Size(targetW, targetH));
+
 
     if (swapRB) cv::cvtColor(resized, resized, cv::COLOR_BGR2RGB);
 
