@@ -15,6 +15,7 @@
 #include <QTextStream>
 #include <QtConcurrent>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <algorithm>
 
 #include <QPainter>
@@ -354,6 +355,7 @@ void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
 {
     morpho_    = morpho;
     keypoints_ = kps;
+    rawBgr_    = rawBgr.clone();
 
     // 恢复常规边框样式
     lblDetection_->setStyleSheet(
@@ -472,12 +474,12 @@ void CaptureDetailWindow::loadRecord(const FishRecord& record)
     morpho_ = record.morphology;
     keypoints_ = record.keypoints;
     
-    // 中间上：检测结果图
+    // 中间上：检测结果图 -> 改为展示原图
     auto* sil = static_cast<ScaledImageLabel*>(lblDetection_);
-    if (!record.annotatedImage.isNull()) {
-        sil->setImage(QPixmap::fromImage(record.annotatedImage));
+    if (!record.rgbImage.isNull()) {
+        sil->setImage(QPixmap::fromImage(record.rgbImage));
     } else {
-        sil->setText("暂无带标注的结果图");
+        sil->setText("暂无原始图像");
     }
     
     // 禁用保存按钮（只读模式）
@@ -580,6 +582,14 @@ void CaptureDetailWindow::onSaveClicked()
     if (!headPix_.isNull()) headPix_.save(d.filePath(QString("fish_%1_head.jpg").arg(idStr)));
     if (!bodyPix_.isNull()) bodyPix_.save(d.filePath(QString("fish_%1_body.jpg").arg(idStr)));
     if (!tailPix_.isNull()) tailPix_.save(d.filePath(QString("fish_%1_tail.jpg").arg(idStr)));
+
+    // 保存原始 RGB 图片
+    if (!rawBgr_.empty()) {
+        cv::Mat rgb;
+        cv::cvtColor(rawBgr_, rgb, cv::COLOR_BGR2RGB);
+        QImage qimg(rgb.data, rgb.cols, rgb.rows, (int)rgb.step, QImage::Format_RGB888);
+        qimg.save(d.filePath(QString("fish_%1_rgb.jpg").arg(idStr)));
+    }
 
     cloudViewer_->saveToPlyBinary(d.filePath(QString("fish_%1_cloud.ply").arg(idStr)));
 
