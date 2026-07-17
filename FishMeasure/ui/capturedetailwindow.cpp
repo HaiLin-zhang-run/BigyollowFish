@@ -569,7 +569,7 @@ void CaptureDetailWindow::onSaveClicked()
     ts << QString("眼长(mm),%1\n").arg(morpho_.eyeLength,    0, 'f', 1);
     ts << QString("眼后头长(mm),%1\n").arg(morpho_.postEyeHeadLength, 0, 'f', 1);
     ts << QString("尾柄长(mm),%1\n").arg(morpho_.caudPedLength,  0, 'f', 1);
-    ts << QString("体高(mm),%1\n").arg(morpho_.bodyHeight,   0, 'f', 1);
+    ts << QString("体宽(mm),%1\n").arg(morpho_.bodyHeight,   0, 'f', 1);
     ts << QString("尾柄高(mm),%1\n").arg(morpho_.caudPedHeight,  0, 'f', 1);
     ts << QString("尾鳍长度(mm),%1\n").arg(morpho_.caudalFinLength, 0, 'f', 1);
     ts << QString("臀鳍长度(mm),%1\n").arg(morpho_.analFinLength, 0, 'f', 1);
