@@ -474,6 +474,12 @@ void CaptureDetailWindow::onSaveClicked()
         d.mkpath(".");
     }
     
+    // 在主目录中创建以鱼的编号命名的子文件夹
+    if (!d.exists(idStr)) {
+        d.mkpath(idStr);
+    }
+    d.cd(idStr);
+    
     QString path = d.filePath(QString("fish_%1.csv").arg(idStr));
 
     QFile f(path);
