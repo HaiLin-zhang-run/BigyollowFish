@@ -34,6 +34,17 @@ void MainWindow::setupUiCustom()
     cameraPreview_ = new CameraPreviewWidget(this);
     ui->centerLayout->addWidget(cameraPreview_);
     
+    // Connect history selection
+    connect(fishList_, &FishListWidget::recordSelected, this, [this](int index) {
+        FishRecord* record = recordManager_.getRecord(index);
+        if (!record) return;
+        
+        auto* dlg = new CaptureDetailWindow(this);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->show(); // Must show before loadRecord to initialize OpenGL context
+        dlg->loadRecord(*record);
+    });
+    
     // Signals
     connect(&camera_, &OrbbecCamera::frameReady, this, &MainWindow::onCameraFrame);
     connect(&camera_, &OrbbecCamera::errorOccurred, this, &MainWindow::onCameraError);
@@ -253,6 +264,12 @@ void MainWindow::on_btnCapture_clicked() {
     auto* dlg = new CaptureDetailWindow(this);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->setSaveInfo(ui->editSavePath->text(), ui->editFishId->text());
+    
+    connect(dlg, &CaptureDetailWindow::recordSaved, this, [this](FishRecord record) {
+        record.rgbImage = currentImage_;
+        record.depthMat = currentDepth_;
+        recordManager_.addRecord(record);
+    });
 
     // 先 show()，让 QOpenGLWidget 完成 initializeGL()，再启动后台推理
     dlg->show();
@@ -298,6 +315,12 @@ void MainWindow::on_btnUploadImage_clicked() {
     auto* dlg = new CaptureDetailWindow(this);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->setSaveInfo(ui->editSavePath->text(), ui->editFishId->text() + "_local");
+
+    connect(dlg, &CaptureDetailWindow::recordSaved, this, [this, qimg, fakeDepth](FishRecord record) {
+        record.rgbImage = qimg;
+        record.depthMat = fakeDepth;
+        recordManager_.addRecord(record);
+    });
 
     dlg->show();
     dlg->startDetection(bgr, fakeDepth,

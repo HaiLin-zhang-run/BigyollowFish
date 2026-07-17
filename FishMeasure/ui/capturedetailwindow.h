@@ -41,6 +41,11 @@ public:
                         float fx, float fy, float cx, float cy);
 
     void setSaveInfo(const QString& dirPath, const QString& fishId);
+    
+    /**
+     * @brief 加载已有历史记录并以只读模式展示
+     */
+    void loadRecord(const FishRecord& record);
 
 private slots:
     void onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat,
@@ -54,6 +59,9 @@ signals:
     void detectionFinished(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat,
                            FishMorphology morpho, FishKeypoints kps,
                            float fx, float fy, float cx, float cy, bool hasFish);
+    
+    // 成功保存后抛出记录
+    void recordSaved(const FishRecord& record);
 
 private:
     // 左侧 3 张截图

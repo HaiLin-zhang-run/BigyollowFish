@@ -18,7 +18,7 @@ signals:
     void recordSelected(int index);
 
 private slots:
-    void onItemSelectionChanged();
+    void onItemClicked(QListWidgetItem* item);
 
 private:
     RecordManager* manager_ = nullptr;

@@ -15,7 +15,7 @@ FishListWidget::FishListWidget(RecordManager* manager, QWidget* parent)
         connect(manager_, &RecordManager::cleared, this, &FishListWidget::onCleared);
     }
     
-    connect(listWidget_, &QListWidget::itemSelectionChanged, this, &FishListWidget::onItemSelectionChanged);
+    connect(listWidget_, &QListWidget::itemClicked, this, &FishListWidget::onItemClicked);
 }
 
 void FishListWidget::onRecordAdded(int index) {
@@ -24,8 +24,7 @@ void FishListWidget::onRecordAdded(int index) {
     if (record) {
         QString text = QString("%1 (%2)").arg(record->id, record->timestamp.toString("HH:mm:ss"));
         listWidget_->addItem(text);
-        // 自动选中最新的一条
-        listWidget_->setCurrentRow(listWidget_->count() - 1);
+        // 不再自动选中，以免弹出历史记录窗口
     }
 }
 
@@ -42,8 +41,9 @@ void FishListWidget::onCleared() {
     listWidget_->clear();
 }
 
-void FishListWidget::onItemSelectionChanged() {
-    int row = listWidget_->currentRow();
+void FishListWidget::onItemClicked(QListWidgetItem* item) {
+    if (!item) return;
+    int row = listWidget_->row(item);
     if (row >= 0) {
         emit recordSelected(row);
     }

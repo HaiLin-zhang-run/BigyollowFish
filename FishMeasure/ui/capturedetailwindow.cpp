@@ -280,6 +280,7 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
             
             qDebug() << "[Det] Running KeypointDetector on full image...";
             kps = pKp->detect(annotated, fullImgRoi);
+            hasFish = kps.isValid();
             
             qDebug() << "[Det] Keypoints done. kp[0] conf=" << kps.conf[0]
                      << "pt=(" << kps.pts[0].x << "," << kps.pts[0].y << ")";
@@ -427,6 +428,8 @@ QPixmap CaptureDetailWindow::cropRegion(const cv::Mat& bgr,
     minY = std::max(0, minY - padding);
     maxX = std::min(bgr.cols - 1, maxX + padding);
     maxY = std::min(bgr.rows - 1, maxY + padding);
+    
+    if (maxX <= minX || maxY <= minY) return QPixmap();
 
     cv::Rect roi(minX, minY, maxX - minX, maxY - minY);
     cv::Mat  crop = bgr(roi).clone();
@@ -459,6 +462,68 @@ void CaptureDetailWindow::setSaveInfo(const QString& dirPath, const QString& fis
 {
     saveDir_ = dirPath;
     fishId_ = fishId;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  loadRecord
+// ─────────────────────────────────────────────────────────────────────────────
+void CaptureDetailWindow::loadRecord(const FishRecord& record)
+{
+    morpho_ = record.morphology;
+    keypoints_ = record.keypoints;
+    
+    // 中间上：检测结果图
+    auto* sil = static_cast<ScaledImageLabel*>(lblDetection_);
+    if (!record.annotatedImage.isNull()) {
+        sil->setImage(QPixmap::fromImage(record.annotatedImage));
+    } else {
+        sil->setText("暂无带标注的结果图");
+    }
+    
+    // 禁用保存按钮（只读模式）
+    btnSave_->setEnabled(false);
+    btnSave_->setText("历史记录 (只读)");
+    
+    // 恢复常规边框样式
+    lblDetection_->setStyleSheet(
+        "QLabel { background:#1e1e1e; border:1px solid #3f3f46;"
+        "border-radius:4px; color:#858585; font-size:12px; }");
+        
+    // 截取左侧三图 (如果存在原始图)
+    if (!record.rgbImage.isNull() && keypoints_.isValid()) {
+        cv::Mat rawBgr;
+        cv::Mat tmp(record.rgbImage.height(), record.rgbImage.width(), CV_8UC3, 
+                    (void*)record.rgbImage.constBits(), record.rgbImage.bytesPerLine());
+        cv::cvtColor(tmp, rawBgr, cv::COLOR_RGB2BGR);
+        
+        headPix_ = cropRegion(rawBgr, keypoints_, {1, 2, 3, 15});
+        setSection(lblHead_, headPix_, QSize(280, 135));
+        bodyPix_ = cropRegion(rawBgr, keypoints_, {4, 5, 11, 12, 13, 14});
+        setSection(lblBody_, bodyPix_, QSize(280, 135));
+        tailPix_ = cropRegion(rawBgr, keypoints_, {6, 7, 8, 9});
+        setSection(lblTail_, tailPix_, QSize(280, 135));
+    } else {
+        lblHead_->setText("无图像");
+        lblBody_->setText("无图像");
+        lblTail_->setText("无图像");
+    }
+    
+    // 点云数据 (如果有深度图和 RGB 图)
+    if (!record.depthMat.empty() && !record.rgbImage.isNull()) {
+        cv::Mat rawBgr;
+        cv::Mat tmp(record.rgbImage.height(), record.rgbImage.width(), CV_8UC3, 
+                    (void*)record.rgbImage.constBits(), record.rgbImage.bytesPerLine());
+        cv::cvtColor(tmp, rawBgr, cv::COLOR_RGB2BGR);
+        
+        // 我们假设使用默认的内参，如果有真实内参也可以传入
+        // 这里只是简单的回放，如果有准确内参效果更好
+        cloudViewer_->setData(record.depthMat, rawBgr, 
+                              rawBgr.cols, rawBgr.rows, 
+                              rawBgr.cols/2.0f, rawBgr.rows/2.0f, cv::Rect());
+    }
+    
+    // 右侧数据面板
+    measurePanel_->updateData(morpho_);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -516,11 +581,26 @@ void CaptureDetailWindow::onSaveClicked()
     if (!bodyPix_.isNull()) bodyPix_.save(d.filePath(QString("fish_%1_body.jpg").arg(idStr)));
     if (!tailPix_.isNull()) tailPix_.save(d.filePath(QString("fish_%1_tail.jpg").arg(idStr)));
 
-    // 保存点云数据为 PLY 二进制文件
     cloudViewer_->saveToPlyBinary(d.filePath(QString("fish_%1_cloud.ply").arg(idStr)));
 
     QMessageBox::information(this, "保存成功", "数据及关联图像、点云已保存到：\n" + d.absolutePath());
 
+    // 构造一条记录并抛出，用于历史列表
+    FishRecord record;
+    record.id = idStr;
+    record.timestamp = QDateTime::currentDateTime();
+    record.morphology = morpho_;
+    record.keypoints = keypoints_;
+    // 从界面上拿到底图，其实我们没有保存原图到类成员，可以考虑仅存已处理图
+    // 由于这里只是展示，我们就存入annotatedImage即可，或者如果有原图成员更好
+    if (auto* sil = static_cast<ScaledImageLabel*>(lblDetection_)) {
+        QPixmap pix = sil->pixmap();
+        if (!pix.isNull()) {
+            record.annotatedImage = pix.toImage();
+        }
+    }
+    // 发出信号
+    emit recordSaved(record);
     
     // 保存成功后关闭次界面，返回主界面
     this->close();

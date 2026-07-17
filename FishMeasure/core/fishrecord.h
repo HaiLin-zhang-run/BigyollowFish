@@ -12,9 +12,9 @@
 // 15个鱼体关键点 (对应大黄鱼标注规范 p1~p15)
 // ─────────────────────────────────────────────
 struct FishKeypoints {
-    std::array<cv::Point2f, 17> pts;   // 像素坐标 (原图坐标系)
-    std::array<float, 17>       conf;  // 置信度 [0,1]
-    std::array<float, 17>       depthMM; // 各点深度 (mm)
+    std::array<cv::Point2f, 17> pts = {};   // 像素坐标 (原图坐标系)
+    std::array<float, 17>       conf = {};  // 置信度 [0,1]
+    std::array<float, 17>       depthMM = {}; // 各点深度 (mm)
 
     // 便捷访问 p1~p15 (0-indexed: p[0]=p1, p[14]=p15)
     cv::Point2f& p(int i) { return pts[i-1]; }
