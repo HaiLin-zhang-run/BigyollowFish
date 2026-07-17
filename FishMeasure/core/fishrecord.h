@@ -43,6 +43,7 @@ struct FishMorphology {
     float pectoralFinLength  = 0; // 12: 胸鳍长 p4→p14
     float caudalFinLength    = 0; // 13: 尾鳍长 p8→p7
     float analFinLength      = 0; // 14: 臀鳍长 p12→p10
+    float eyeFinLength       = 0; // 15: 眼鳍距 鱼眼中点到p4
     
     // 额外物理/颜色指标
     float thickness       = 0; // 厚度   深度图Z差 (mm)

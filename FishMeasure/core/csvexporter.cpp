@@ -15,7 +15,7 @@ bool CsvExporter::exportRecords(const QString& filePath, const QList<FishRecord>
     out.setEncoding(QStringConverter::Utf8);
     if (!fileExists) {
         out << "\xEF\xBB\xBF"; 
-        out << "ID,Time,TotalLength,BodyLength,HeadLength,TrunkLength,TailLength,SnoutLength,EyeLength,PostEyeHeadLength,CaudPedLength,BodyHeight,CaudPedHeight,PectoralFinLength,CaudalFinLength,AnalFinLength,Thickness,Weight,YellowBlueValue\n";
+        out << "ID,Time,TotalLength,BodyLength,HeadLength,TrunkLength,TailLength,SnoutLength,EyeLength,PostEyeHeadLength,CaudPedLength,BodyHeight,CaudPedHeight,PectoralFinLength,CaudalFinLength,AnalFinLength,Thickness,Weight,EyeFinLength,YellowBlueValue\n";
     }
 
     for (const auto& r : records) {
@@ -37,6 +37,7 @@ bool CsvExporter::exportRecords(const QString& filePath, const QList<FishRecord>
             << r.morphology.analFinLength << ","
             << r.morphology.thickness << ","
             << r.morphology.weight << ","
+            << r.morphology.eyeFinLength << ","
             << r.morphology.yellowBlueValue << "\n";
     }
 

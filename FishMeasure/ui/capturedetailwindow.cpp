@@ -559,22 +559,24 @@ void CaptureDetailWindow::onSaveClicked()
     // 使用系统默认编码 (Windows下通常为 GBK) 写入 CSV，这样 Excel 直接打开就不会乱码了
     ts.setEncoding(QStringConverter::System);
     ts << "指标,数值\n";
-    ts << QString("1:全长(mm),%1\n").arg(morpho_.totalLength,  0, 'f', 1);
-    ts << QString("2:体长(mm),%1\n").arg(morpho_.bodyLength,   0, 'f', 1);
-    ts << QString("3:头长(mm),%1\n").arg(morpho_.headLength,   0, 'f', 1);
-    ts << QString("4:躯干长(mm),%1\n").arg(morpho_.trunkLength, 0, 'f', 1);
-    ts << QString("5:尾长(mm),%1\n").arg(morpho_.tailLength,   0, 'f', 1);
-    ts << QString("6:吻长(mm),%1\n").arg(morpho_.snoutLength,  0, 'f', 1);
-    ts << QString("7:眼长(mm),%1\n").arg(morpho_.eyeLength,    0, 'f', 1);
-    ts << QString("8:眼后头长(mm),%1\n").arg(morpho_.postEyeHeadLength, 0, 'f', 1);
-    ts << QString("9:尾柄长(mm),%1\n").arg(morpho_.caudPedLength,  0, 'f', 1);
-    ts << QString("10:体高(mm),%1\n").arg(morpho_.bodyHeight,   0, 'f', 1);
-    ts << QString("11:尾柄高(mm),%1\n").arg(morpho_.caudPedHeight,  0, 'f', 1);
-    ts << QString("12:胸鳍长度(mm),%1\n").arg(morpho_.pectoralFinLength, 0, 'f', 1);
-    ts << QString("13:尾鳍长度(mm),%1\n").arg(morpho_.caudalFinLength, 0, 'f', 1);
-    ts << QString("14:臀鳍长度(mm),%1\n").arg(morpho_.analFinLength, 0, 'f', 1);
+    ts << QString("鱼的编号,%1\n").arg(idStr);
+    ts << QString("全长(mm),%1\n").arg(morpho_.totalLength,  0, 'f', 1);
+    ts << QString("体长(mm),%1\n").arg(morpho_.bodyLength,   0, 'f', 1);
+    ts << QString("头长(mm),%1\n").arg(morpho_.headLength,   0, 'f', 1);
+    ts << QString("躯干长(mm),%1\n").arg(morpho_.trunkLength, 0, 'f', 1);
+    ts << QString("尾长(mm),%1\n").arg(morpho_.tailLength,   0, 'f', 1);
+    ts << QString("吻长(mm),%1\n").arg(morpho_.snoutLength,  0, 'f', 1);
+    ts << QString("眼长(mm),%1\n").arg(morpho_.eyeLength,    0, 'f', 1);
+    ts << QString("眼后头长(mm),%1\n").arg(morpho_.postEyeHeadLength, 0, 'f', 1);
+    ts << QString("尾柄长(mm),%1\n").arg(morpho_.caudPedLength,  0, 'f', 1);
+    ts << QString("体高(mm),%1\n").arg(morpho_.bodyHeight,   0, 'f', 1);
+    ts << QString("尾柄高(mm),%1\n").arg(morpho_.caudPedHeight,  0, 'f', 1);
+    ts << QString("尾鳍长度(mm),%1\n").arg(morpho_.caudalFinLength, 0, 'f', 1);
+    ts << QString("臀鳍长度(mm),%1\n").arg(morpho_.analFinLength, 0, 'f', 1);
     ts << QString("厚度(mm),%1\n").arg(morpho_.thickness,    0, 'f', 1);
     ts << QString("体重(g),%1\n").arg(morpho_.weight,       0, 'f', 1);
+    ts << QString("胸鳍长度(mm),%1\n").arg(morpho_.pectoralFinLength, 0, 'f', 1);
+    ts << QString("眼鳍距(mm),%1\n").arg(morpho_.eyeFinLength, 0, 'f', 1);
     ts << QString("黄蓝值,%1\n").arg(morpho_.yellowBlueValue, 0, 'f', 1);
     f.close();
 

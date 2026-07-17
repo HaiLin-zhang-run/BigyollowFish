@@ -88,6 +88,13 @@ FishMorphology MorphoCalculator::calculate(
     m.pectoralFinLength  = dist3D(4, 14, kps); // 12: 胸鳍长 p4->p14
     m.caudalFinLength    = dist3D(8, 7,  kps); // 13: 尾鳍长 p8->p7
     m.analFinLength      = dist3D(12,10, kps); // 14: 臀鳍长 p12->p10
+    
+    // 眼鳍距：眼的中点(p2, p3的中点) 到 胸鳍起点(p4)
+    auto p2_3d = to3D(kps.p(2), kps.d(2));
+    auto p3_3d = to3D(kps.p(3), kps.d(3));
+    auto eye_center_3d = (p2_3d + p3_3d) * 0.5f;
+    auto p4_3d = to3D(kps.p(4), kps.d(4));
+    m.eyeFinLength = (float)cv::norm(eye_center_3d - p4_3d);
 
     // ── 垂直高度（背腹方向，利用Y轴坐标差）──
     // 10: 体高：p5到 p13
