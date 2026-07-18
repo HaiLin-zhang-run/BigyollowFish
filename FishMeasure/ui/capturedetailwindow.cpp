@@ -533,7 +533,8 @@ void CaptureDetailWindow::loadRecord(const FishRecord& record)
 // ─────────────────────────────────────────────────────────────────────────────
 void CaptureDetailWindow::onSaveClicked()
 {
-    QString dir = saveDir_.isEmpty() ? "D:/QPRO" : saveDir_;
+    QString dir = saveDir_.isEmpty() ? "D:/QPRO/主目录" : saveDir_;
+    QString dateStr = QDateTime::currentDateTime().toString("yyyy-MM-dd");
     QString idStr = fishId_.isEmpty() ? QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") : fishId_;
     
     QDir d(dir);
@@ -541,7 +542,13 @@ void CaptureDetailWindow::onSaveClicked()
         d.mkpath(".");
     }
     
-    // 在主目录中创建以鱼的编号命名的子文件夹
+    // 1. 创建日期子文件夹
+    if (!d.exists(dateStr)) {
+        d.mkpath(dateStr);
+    }
+    d.cd(dateStr);
+    
+    // 2. 在日期文件夹中创建以鱼的编号命名的孙文件夹
     if (!d.exists(idStr)) {
         d.mkpath(idStr);
     }
