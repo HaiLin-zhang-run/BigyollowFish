@@ -110,17 +110,6 @@ bool OrbbecCamera::open() {
         qDebug() << "Starting pipeline...";
         pipeline_->start(config);
 
-        // 尝试开启自动对焦，以解决画面糊的问题
-        try {
-            auto dev = pipeline_->getDevice();
-            if (dev && dev->isPropertySupported(OB_PROP_COLOR_AUTO_FOCUS_BOOL, OB_PERMISSION_WRITE)) {
-                dev->setBoolProperty(OB_PROP_COLOR_AUTO_FOCUS_BOOL, true);
-                qDebug() << "Auto focus enabled.";
-            }
-        } catch (...) {
-            qDebug() << "Failed to enable auto focus.";
-        }
-
         qDebug() << "Reading camera parameters...";
         auto param = pipeline_->getCameraParam();
         intrinsics_.fx = param.rgbIntrinsic.fx;
