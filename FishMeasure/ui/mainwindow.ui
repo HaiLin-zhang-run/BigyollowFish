@@ -126,11 +126,20 @@
          <property name="title"><string>基本信息</string></property>
          <layout class="QVBoxLayout" name="verticalLayoutSettings">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayoutId">
-            <item><widget class="QLabel" name="labelId"><property name="text"><string>鱼的编号:</string></property></widget></item>
-            <item><widget class="QLineEdit" name="editFishId"/></item>
-            <item><widget class="QPushButton" name="btnConfirmFishId"><property name="text"><string>确认</string></property></widget></item>
-            <item><widget class="QPushButton" name="btnModifyFishId"><property name="text"><string>修改</string></property><property name="enabled"><bool>false</bool></property></widget></item>
+           <layout class="QVBoxLayout" name="verticalLayoutId">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayoutIdTop">
+              <item><widget class="QLabel" name="labelId"><property name="text"><string>鱼的编号:</string></property></widget></item>
+              <item><widget class="QLineEdit" name="editFishId"/></item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayoutIdBottom">
+              <item><widget class="QPushButton" name="btnConfirmFishId"><property name="text"><string>确认</string></property></widget></item>
+              <item><widget class="QPushButton" name="btnModifyFishId"><property name="text"><string>修改</string></property><property name="enabled"><bool>false</bool></property></widget></item>
+              <item><widget class="QCheckBox" name="chkAutoScan"><property name="text"><string>自动扫码</string></property></widget></item>
+             </layout>
+            </item>
            </layout>
           </item>
           <item>

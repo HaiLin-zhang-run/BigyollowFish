@@ -6,6 +6,7 @@ class CameraPreviewWidget : public QWidget {
     Q_OBJECT
 public:
     explicit CameraPreviewWidget(QWidget* parent = nullptr);
+    void setShowOcrBox(bool show);
     
 public slots:
     void updateImage(const QImage& img);
@@ -15,4 +16,5 @@ protected:
     
 private:
     QImage currentImage_;
+    bool showOcrBox_ = false;
 };

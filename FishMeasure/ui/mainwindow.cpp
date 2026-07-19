@@ -7,8 +7,10 @@
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QDebug>
+#include <QDebug>
 #include <opencv2/imgproc.hpp>
-
+#include <opencv2/imgcodecs.hpp>
+#include <QDir>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -77,6 +79,12 @@ void MainWindow::setupUiCustom()
     // 初始化时禁用拍照按钮，等待模型加载
     ui->btnCapture->setEnabled(false);
     ui->btnCapture->setText("模型加载中...");
+
+    ocrTimer_ = new QTimer(this);
+    ocrProcess_ = new QProcess(this);
+    connect(ocrTimer_, &QTimer::timeout, this, &MainWindow::onOcrTimerTimeout);
+    connect(ocrProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &MainWindow::onOcrProcessFinished);
 }
 
 void MainWindow::initModules()
@@ -269,6 +277,10 @@ void MainWindow::on_btnCapture_clicked() {
         record.rgbImage = currentImage_;
         record.depthMat = currentDepth_;
         recordManager_.addRecord(record);
+        
+        // 测完返回主界面时，自动解锁编号框并重新开始扫码
+        on_btnModifyFishId_clicked();
+        ui->chkAutoScan->setChecked(true);
     });
 
     // 先 show()，让 QOpenGLWidget 完成 initializeGL()，再启动后台推理
@@ -320,6 +332,10 @@ void MainWindow::on_btnUploadImage_clicked() {
         record.rgbImage = qimg;
         record.depthMat = fakeDepth;
         recordManager_.addRecord(record);
+        
+        // 测完返回主界面时，自动解锁编号框并重新开始扫码
+        on_btnModifyFishId_clicked();
+        ui->chkAutoScan->setChecked(true);
     });
 
     dlg->show();
@@ -328,3 +344,69 @@ void MainWindow::on_btnUploadImage_clicked() {
                         fishDetector_, kpDetector_, morphoCalc_,
                         fx, fy, cx, cy);
 }
+
+void MainWindow::on_chkAutoScan_stateChanged(int state) {
+    autoScanEnabled_ = (state == Qt::Checked);
+    cameraPreview_->setShowOcrBox(autoScanEnabled_);
+    
+    if (autoScanEnabled_) {
+        ocrTimer_->start(1000); // 1 second interval
+    } else {
+        ocrTimer_->stop();
+        if (ocrProcess_->state() != QProcess::NotRunning) {
+            ocrProcess_->kill();
+        }
+    }
+}
+
+void MainWindow::onOcrTimerTimeout() {
+    if (!autoScanEnabled_ || currentRawBgr_.empty() || ocrProcess_->state() != QProcess::NotRunning) {
+        return;
+    }
+
+    // 截取中心区域 (例如 300x150)
+    int cx = currentRawBgr_.cols / 2;
+    int cy = currentRawBgr_.rows / 2;
+    int rw = 800; // 宽一点适应多个数字
+    int rh = 400;
+    int rx = std::max(0, cx - rw / 2);
+    int ry = std::max(0, cy - rh / 2);
+    rw = std::min(rw, currentRawBgr_.cols - rx);
+    rh = std::min(rh, currentRawBgr_.rows - ry);
+
+    if (rw <= 0 || rh <= 0) return;
+
+    cv::Mat roi = currentRawBgr_(cv::Rect(rx, ry, rw, rh));
+    // 转为灰度图并简单二值化可能会提高tesseract准确率，这里先直接传图
+    QString tempPath = QDir::tempPath() + "/ocr_temp.jpg";
+    cv::imwrite(tempPath.toStdString(), roi);
+
+    QString tesseractPath = "D:/Tesseract-OCR/tesseract.exe";
+    QStringList args;
+    args << tempPath << "stdout" << "--psm" << "8" << "-c" << "tessedit_char_whitelist=0123456789";
+
+    ocrProcess_->start(tesseractPath, args);
+}
+
+void MainWindow::onOcrProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+    if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+        QString output = QString::fromUtf8(ocrProcess_->readAllStandardOutput()).trimmed();
+        // 过滤非数字
+        QString digitsOnly;
+        for (QChar c : output) {
+            if (c.isDigit()) {
+                digitsOnly.append(c);
+            }
+        }
+        if (!digitsOnly.isEmpty()) {
+            ui->editFishId->setText(digitsOnly);
+            
+            // 自动检测5位数字并确认
+            if (digitsOnly.length() == 5) {
+                ui->chkAutoScan->setChecked(false); // 停止自动扫码
+                on_btnConfirmFishId_clicked();      // 自动确认
+            }
+        }
+    }
+}
+

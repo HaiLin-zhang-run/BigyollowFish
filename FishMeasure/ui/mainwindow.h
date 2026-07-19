@@ -1,6 +1,7 @@
 #pragma once
 #include <QMainWindow>
 #include <QTimer>
+#include <QProcess>
 #include "../core/recordmanager.h"
 #include "../camera/orbbeccamera.h"
 #include "../detection/fishdetector.h"
@@ -48,6 +49,10 @@ private slots:
     void on_btnModifyFishId_clicked();
     void on_btnUploadImage_clicked();
     
+    void onOcrTimerTimeout();
+    void onOcrProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void on_chkAutoScan_stateChanged(int state);
+    
 private:
     Ui::MainWindow *ui;
     
@@ -66,6 +71,10 @@ private:
     double currentWeight_ = 0.0;
     bool modelsLoaded_ = false;
     QPushButton* btnUploadImage_ = nullptr;
+
+    QTimer* ocrTimer_ = nullptr;
+    QProcess* ocrProcess_ = nullptr;
+    bool autoScanEnabled_ = false;
 
     // 当前帧缓存（拍照时传给次界面做推理）
     cv::Mat currentRawBgr_;
