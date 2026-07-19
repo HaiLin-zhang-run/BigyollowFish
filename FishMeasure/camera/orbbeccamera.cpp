@@ -61,7 +61,13 @@ bool OrbbecCamera::open() {
         std::shared_ptr<ob::VideoStreamProfile> colorProfile = nullptr;
         if (colorProfiles) {
             // Orbbec SDK 会在找不到 profile 时抛出异常，因此必须用 try-catch 包裹
-            try { colorProfile = colorProfiles->getVideoStreamProfile(1920, 1080, OB_FORMAT_RGB, 30); } catch (...) {}
+            try { colorProfile = colorProfiles->getVideoStreamProfile(3840, 2160, OB_FORMAT_RGB, 30); } catch (...) {}
+            if (!colorProfile) {
+                try { colorProfile = colorProfiles->getVideoStreamProfile(2560, 1440, OB_FORMAT_RGB, 30); } catch (...) {}
+            }
+            if (!colorProfile) {
+                try { colorProfile = colorProfiles->getVideoStreamProfile(1920, 1080, OB_FORMAT_RGB, 30); } catch (...) {}
+            }
             if (!colorProfile) {
                 try { colorProfile = colorProfiles->getVideoStreamProfile(1280, 720, OB_FORMAT_RGB, 30); } catch (...) {}
             }
@@ -103,6 +109,17 @@ bool OrbbecCamera::open() {
 
         qDebug() << "Starting pipeline...";
         pipeline_->start(config);
+
+        // 尝试开启自动对焦，以解决画面糊的问题
+        try {
+            auto dev = pipeline_->getDevice();
+            if (dev && dev->isPropertySupported(OB_PROP_COLOR_AUTO_FOCUS_BOOL, OB_PERMISSION_WRITE)) {
+                dev->setBoolProperty(OB_PROP_COLOR_AUTO_FOCUS_BOOL, true);
+                qDebug() << "Auto focus enabled.";
+            }
+        } catch (...) {
+            qDebug() << "Failed to enable auto focus.";
+        }
 
         qDebug() << "Reading camera parameters...";
         auto param = pipeline_->getCameraParam();
