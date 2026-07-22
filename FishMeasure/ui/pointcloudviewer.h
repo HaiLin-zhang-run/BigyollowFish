@@ -5,6 +5,8 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QVector3D>
+#include <QCheckBox>
+#include <QResizeEvent>
 #include <opencv2/core.hpp>
 
 struct CameraIntrinsics;
@@ -36,12 +38,14 @@ protected:
     void mousePressEvent(QMouseEvent* e) override;
     void mouseMoveEvent(QMouseEvent* e) override;
     void wheelEvent(QWheelEvent* e) override;
+    void resizeEvent(QResizeEvent* e) override;
 
 private:
     struct Point3D {
         float x, y, z;
-        float r, g, b;
+        float r, g, b;     // Real Color
         float nx, ny, nz;
+        float jr, jg, jb;  // Jet Color
     };
 
     std::vector<Point3D> points_;
@@ -58,6 +62,8 @@ private:
     QPoint lastMousePos_;
     
     bool dataReady_ = false;
+    bool useRealColor_ = false;
+    QCheckBox* cbRealColor_ = nullptr;
     
     // OpenGL buffer
     unsigned int vao_ = 0;

@@ -22,6 +22,19 @@
 #include <QStyleOption>
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Helper: Image Enhancement (Interpolation + Sharpening)
+// ─────────────────────────────────────────────────────────────────────────────
+static void enhanceImageMat(cv::Mat& img) {
+    if (img.empty()) return;
+    // 1. 插值放大 (1.5倍，双三次插值)
+    cv::resize(img, img, cv::Size(), 1.5, 1.5, cv::INTER_CUBIC);
+    // 2. USM锐化 (增强边缘细节)
+    cv::Mat blurred;
+    cv::GaussianBlur(img, blurred, cv::Size(0, 0), 3.0);
+    cv::addWeighted(img, 1.5, blurred, -0.5, 0, img);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Helper: ScaledImageLabel for responsive image rendering
 // ─────────────────────────────────────────────────────────────────────────────
 class ScaledImageLabel : public QLabel {
@@ -365,9 +378,12 @@ void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
     // ── 2. 中间上：检测图 ────────────────────────────────────────────────────
     {
         cv::Mat rgb;
-        cv::cvtColor(annotatedBgr, rgb, cv::COLOR_BGR2RGB);
+        cv::Mat enhanced = annotatedBgr.clone();
+        enhanceImageMat(enhanced);
+        cv::cvtColor(enhanced, rgb, cv::COLOR_BGR2RGB);
         QImage qimg(rgb.data, rgb.cols, rgb.rows, (int)rgb.step, QImage::Format_RGB888);
         QPixmap pix = QPixmap::fromImage(qimg.copy());
+
         
         auto* sil = static_cast<ScaledImageLabel*>(lblDetection_);
         if (!pix.isNull()) {
@@ -435,6 +451,7 @@ QPixmap CaptureDetailWindow::cropRegion(const cv::Mat& bgr,
 
     cv::Rect roi(minX, minY, maxX - minX, maxY - minY);
     cv::Mat  crop = bgr(roi).clone();
+    enhanceImageMat(crop); // 应用插值放大和锐化
     cv::Mat  rgb;
     cv::cvtColor(crop, rgb, cv::COLOR_BGR2RGB);
 

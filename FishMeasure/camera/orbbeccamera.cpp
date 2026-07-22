@@ -90,7 +90,7 @@ bool OrbbecCamera::open() {
         auto depthProfiles = pipeline_->getStreamProfileList(OB_SENSOR_DEPTH);
         std::shared_ptr<ob::VideoStreamProfile> depthProfile = nullptr;
         if (depthProfiles) {
-            try { depthProfile = depthProfiles->getVideoStreamProfile(640, 480, OB_FORMAT_Y16, 30); } catch (...) {}
+            try { depthProfile = depthProfiles->getVideoStreamProfile(1600, 1200, OB_FORMAT_Y16, 30); } catch (...) {}
             if (!depthProfile) {
                 try { depthProfile = depthProfiles->getVideoStreamProfile(0, 0, OB_FORMAT_Y16, 30); } catch (...) {}
             }

@@ -92,6 +92,18 @@ static void getJetColor(float v, float vmin, float vmax, float& r, float& g, flo
 PointCloudViewer::PointCloudViewer(QWidget* parent)
     : QOpenGLWidget(parent) {
     setMinimumSize(400, 200);
+    cbRealColor_ = new QCheckBox("真实彩色 (RGB)", this);
+    cbRealColor_->setStyleSheet("QCheckBox { color: white; background: #80000000; padding: 4px; border-radius: 4px; font-weight: bold; }");
+    cbRealColor_->setChecked(false);
+    connect(cbRealColor_, &QCheckBox::toggled, this, [this](bool checked) {
+        useRealColor_ = checked;
+        if (dataReady_) {
+            makeCurrent();
+            rebuildBuffer();
+            doneCurrent();
+            update();
+        }
+    });
 }
 
 PointCloudViewer::~PointCloudViewer() {
@@ -157,10 +169,19 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
             pt.y = Y;
             pt.z = Z;
 
-            // 暂定白色，后面统一染伪彩色
-            pt.r = 1.0f;
-            pt.g = 1.0f;
-            pt.b = 1.0f;
+            // 提取真实的彩色像素
+            int colorX = std::round(u * scaleX);
+            int colorY = std::round(v * scaleY);
+            if (colorX >= 0 && colorX < colorBgr.cols && colorY >= 0 && colorY < colorBgr.rows) {
+                cv::Vec3b bgr = colorBgr.at<cv::Vec3b>(colorY, colorX);
+                pt.r = bgr[2] / 255.0f;
+                pt.g = bgr[1] / 255.0f;
+                pt.b = bgr[0] / 255.0f;
+            } else {
+                pt.r = 1.0f; pt.g = 1.0f; pt.b = 1.0f;
+            }
+            // 预留伪彩色占位
+            pt.jr = 1.0f; pt.jg = 1.0f; pt.jb = 1.0f;
 
             // 计算法线：取向右和向下的邻居像素点
             float nx = 0.0f, ny = 0.0f, nz = 1.0f; // 默认朝向相机
@@ -209,7 +230,7 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
     // 二次染色：基于深度(Z)映射伪彩色 (Jet Colormap)
     if (cnt > 0) {
         for (auto& p : points_) {
-            getJetColor(p.z, minZ, maxZ, p.r, p.g, p.b);
+            getJetColor(p.z, minZ, maxZ, p.jr, p.jg, p.jb);
         }
     }
 
@@ -319,8 +340,13 @@ void PointCloudViewer::rebuildBuffer() {
     glEnableVertexAttribArray(0);
     
     // aColor (location = 1)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point3D),
-                          (void*)offsetof(Point3D, r));
+    if (useRealColor_) {
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point3D),
+                              (void*)offsetof(Point3D, r));
+    } else {
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point3D),
+                              (void*)offsetof(Point3D, jr));
+    }
     glEnableVertexAttribArray(1);
     
     // aNormal (location = 2)
@@ -369,6 +395,13 @@ void PointCloudViewer::wheelEvent(QWheelEvent* e) {
     update();
 }
 
+void PointCloudViewer::resizeEvent(QResizeEvent* e) {
+    QOpenGLWidget::resizeEvent(e);
+    if (cbRealColor_) {
+        cbRealColor_->move(width() - cbRealColor_->width() - 10, 10);
+    }
+}
+
 bool PointCloudViewer::saveToPlyBinary(const QString& filepath) const {
     if (points_.empty()) return false;
     QFile file(filepath);
@@ -390,7 +423,27 @@ bool PointCloudViewer::saveToPlyBinary(const QString& filepath) const {
     headerStream << "end_header\n";
     headerStream.flush();
     
-    file.write((const char*)points_.data(), points_.size() * sizeof(Point3D));
+    struct PlyPoint { float x, y, z, r, g, b, nx, ny, nz; };
+    std::vector<PlyPoint> plyPoints(points_.size());
+    for (size_t i = 0; i < points_.size(); ++i) {
+        plyPoints[i].x = points_[i].x;
+        plyPoints[i].y = points_[i].y;
+        plyPoints[i].z = points_[i].z;
+        if (useRealColor_) {
+            plyPoints[i].r = points_[i].r;
+            plyPoints[i].g = points_[i].g;
+            plyPoints[i].b = points_[i].b;
+        } else {
+            plyPoints[i].r = points_[i].jr;
+            plyPoints[i].g = points_[i].jg;
+            plyPoints[i].b = points_[i].jb;
+        }
+        plyPoints[i].nx = points_[i].nx;
+        plyPoints[i].ny = points_[i].ny;
+        plyPoints[i].nz = points_[i].nz;
+    }
+    
+    file.write((const char*)plyPoints.data(), plyPoints.size() * sizeof(PlyPoint));
     file.close();
     return true;
 }
