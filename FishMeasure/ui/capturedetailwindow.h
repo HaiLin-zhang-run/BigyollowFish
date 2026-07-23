@@ -92,10 +92,10 @@ private:
     QString saveDir_;
     QString fishId_;
 
-    // 保存用数据
     FishMorphology  morpho_;
     FishKeypoints   keypoints_;
     cv::Mat         rawBgr_;
+    cv::Mat         maskMat_;
 
     // 辅助：按关键点范围裁剪图像
     QPixmap cropRegion(const cv::Mat& bgr, const FishKeypoints& kps,

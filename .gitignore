@@ -9,10 +9,12 @@ bin/
 *.log
 .qtc_clangd/
 .vscode/
+3D_rebuild/
 
 # Large files & specific directories
 best.onnx
 fish_keypoint.onnx
+last.onnx
 .agents
 onnxruntime-win-x64-1.21.0/
 OrbbecSDK_v2-main/

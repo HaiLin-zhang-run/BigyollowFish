@@ -64,6 +64,7 @@ struct FishRecord {
     FishKeypoints keypoints;
     FishMorphology morphology;
     cv::Mat       depthMat;        // 深度图 (CV_16U, mm)
+    cv::Mat       maskMat;         // 分割掩码图 (CV_8UC1)
 
     // 序列号自动生成
     static QString generateId(int seq) {

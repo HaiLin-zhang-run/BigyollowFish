@@ -371,10 +371,10 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
 void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat, cv::Mat maskMat,
                                           FishMorphology morpho, FishKeypoints kps,
                                           float fx, float fy, float cx, float cy, bool hasFish)
-{
     morpho_    = morpho;
     keypoints_ = kps;
     rawBgr_    = rawBgr.clone();
+    maskMat_   = maskMat.clone();
 
     // 恢复常规边框样式
     lblDetection_->setStyleSheet(
@@ -544,7 +544,7 @@ void CaptureDetailWindow::loadRecord(const FishRecord& record)
         // 这里只是简单的回放，如果有准确内参效果更好
         cloudViewer_->setData(record.depthMat, rawBgr, 
                               rawBgr.cols, rawBgr.rows, 
-                              rawBgr.cols/2.0f, rawBgr.rows/2.0f, cv::Rect());
+                              rawBgr.cols/2.0f, rawBgr.rows/2.0f, cv::Rect(), record.maskMat);
     }
     
     // 右侧数据面板
@@ -633,6 +633,7 @@ void CaptureDetailWindow::onSaveClicked()
     record.timestamp = QDateTime::currentDateTime();
     record.morphology = morpho_;
     record.keypoints = keypoints_;
+    record.maskMat = maskMat_;
     // 从界面上拿到底图，其实我们没有保存原图到类成员，可以考虑仅存已处理图
     // 由于这里只是展示，我们就存入annotatedImage即可，或者如果有原图成员更好
     if (auto* sil = static_cast<ScaledImageLabel*>(lblDetection_)) {
