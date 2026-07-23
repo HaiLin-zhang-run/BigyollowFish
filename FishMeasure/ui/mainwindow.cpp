@@ -100,8 +100,13 @@ void MainWindow::initModules()
             qWarning() << "Failed to load keypoint model:" << KEYPOINT_MODEL_PATH;
         }
         
-        QMetaObject::invokeMethod(this, [this, detOk, kpOk]() {
-            modelsLoaded_ = (detOk && kpOk);
+        bool segOk = fishSegmentor_.load(SEGMENT_MODEL_PATH);
+        if (!segOk) {
+            qWarning() << "Failed to load segment model:" << SEGMENT_MODEL_PATH;
+        }
+
+        QMetaObject::invokeMethod(this, [this, detOk, kpOk, segOk]() {
+            modelsLoaded_ = (detOk && kpOk && segOk);
             if (modelsLoaded_) {
                 if (btnUploadImage_) btnUploadImage_->setEnabled(true);
                 ui->btnCapture->setEnabled(true);
@@ -287,7 +292,7 @@ void MainWindow::on_btnCapture_clicked() {
     dlg->show();
     dlg->startDetection(currentRawBgr_, currentDepth_,
                         currentWeight_,
-                        fishDetector_, kpDetector_, morphoCalc_,
+                        fishDetector_, kpDetector_, morphoCalc_, fishSegmentor_,
                         intr.fx, intr.fy, intr.cx, intr.cy);
 }
 
@@ -340,9 +345,9 @@ void MainWindow::on_btnUploadImage_clicked() {
 
     dlg->show();
     dlg->startDetection(bgr, fakeDepth,
-                        0.0, // 本地图片无真实重量
-                        fishDetector_, kpDetector_, morphoCalc_,
-                        fx, fy, cx, cy);
+                        0.0,
+                        fishDetector_, kpDetector_, morphoCalc_, fishSegmentor_,
+                        500.0f, 500.0f, cx, cy);
 }
 
 void MainWindow::on_chkAutoScan_stateChanged(int state) {

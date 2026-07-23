@@ -266,6 +266,7 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
                                           FishDetector& fishDetector,
                                           KeypointDetector& kpDetector,
                                           MorphoCalculator& morphoCalc,
+                                          FishSegmentor& fishSegmentor,
                                           float fx, float fy, float cx, float cy)
 {
     // 拷贝数据，确保后台线程安全
@@ -276,10 +277,12 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
     FishDetector*    pDet   = &fishDetector;
     KeypointDetector* pKp   = &kpDetector;
     MorphoCalculator* pCalc = &morphoCalc;
+    FishSegmentor*   pSeg   = &fishSegmentor;
 
     (void)QtConcurrent::run([this, rawBgrCopy, depthCopy, weight,
-                              pDet, pKp, pCalc, fx, fy, cx, cy]() mutable {
+                              pDet, pKp, pCalc, pSeg, fx, fy, cx, cy]() mutable {
         cv::Mat annotated = rawBgrCopy.clone();
+        cv::Mat maskMat;
         FishKeypoints kps;
         FishMorphology morpho;
         bool hasFish = false;
@@ -295,6 +298,13 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
             qDebug() << "[Det] Running KeypointDetector on full image...";
             kps = pKp->detect(annotated, fullImgRoi);
             hasFish = kps.isValid();
+            qDebug() << "[Det] Running FishSegmentor...";
+            maskMat = pSeg->segment(rawBgrCopy);
+            if (!maskMat.empty()) {
+                qDebug() << "[Det] Segmentation mask generated successfully.";
+            } else {
+                qDebug() << "[Det] Warning: Segmentation mask is empty.";
+            }
             
             qDebug() << "[Det] Keypoints done. kp[0] conf=" << kps.conf[0]
                      << "pt=(" << kps.pts[0].x << "," << kps.pts[0].y << ")";
@@ -350,7 +360,7 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
         }
 
         // 通过 QueuedConnection 安全回到主线程
-        emit detectionFinished(annotated, rawBgrCopy, depthCopy,
+        emit detectionFinished(annotated, rawBgrCopy, depthCopy, maskMat,
                                morpho, kps, fx, fy, cx, cy, hasFish);
     });
 }
@@ -358,13 +368,9 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
 // ─────────────────────────────────────────────────────────────────────────────
 //  onDetectionDone – 在主线程更新所有 UI 控件（信号触发）
 // ─────────────────────────────────────────────────────────────────────────────
-void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
-                                           cv::Mat rawBgr,
-                                           cv::Mat depthMat,
-                                           FishMorphology morpho,
-                                           FishKeypoints kps,
-                                           float fx, float fy, float cx, float cy,
-                                           bool hasFish)
+void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat, cv::Mat maskMat,
+                                          FishMorphology morpho, FishKeypoints kps,
+                                          float fx, float fy, float cx, float cy, bool hasFish)
 {
     morpho_    = morpho;
     keypoints_ = kps;
@@ -412,7 +418,7 @@ void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr,
 
     // ── 4. 中间下：3D 点云（始终显示完整场景点云）────────────────────────────
     // 传入空 Rect 表示渲染全图
-    cloudViewer_->setData(depthMat, rawBgr, fx, fy, cx, cy, cv::Rect());
+    cloudViewer_->setData(depthMat, rawBgr, fx, fy, cx, cy, cv::Rect(), maskMat);
 
     // ── 5. 右侧数据面板 ───────────────────────────────────────────────────────
     measurePanel_->updateData(morpho);

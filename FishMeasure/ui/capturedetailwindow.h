@@ -10,6 +10,7 @@
 #include "../detection/fishdetector.h"
 #include "../detection/keypointdetector.h"
 #include "../detection/morphocalculator.h"
+#include "../detection/fishsegmentor.h"
 
 class MeasurePanelWidget;
 class PointCloudViewer;
@@ -38,6 +39,7 @@ public:
                         FishDetector& fishDetector,
                         KeypointDetector& kpDetector,
                         MorphoCalculator& morphoCalc,
+                        FishSegmentor& fishSegmentor,
                         float fx, float fy, float cx, float cy);
 
     void setSaveInfo(const QString& dirPath, const QString& fishId);
@@ -48,7 +50,7 @@ public:
     void loadRecord(const FishRecord& record);
 
 private slots:
-    void onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat,
+    void onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat, cv::Mat maskMat,
                          FishMorphology morpho, FishKeypoints kps,
                          float fx, float fy, float cx, float cy, bool hasFish);
     void onSaveClicked();
@@ -56,7 +58,7 @@ private slots:
 
 signals:
     // 内部用信号，后台完成后触发
-    void detectionFinished(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat,
+    void detectionFinished(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat, cv::Mat maskMat,
                            FishMorphology morpho, FishKeypoints kps,
                            float fx, float fy, float cx, float cy, bool hasFish);
     

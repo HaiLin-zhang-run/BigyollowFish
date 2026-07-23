@@ -32,6 +32,7 @@ SOURCES += \
     detection/fishdetector.cpp \
     detection/keypointdetector.cpp \
     detection/morphocalculator.cpp \
+    detection/fishsegmentor.cpp \
     serial/scaleserial.cpp \
     ui/mainwindow.cpp \
     ui/camerapreviewwidget.cpp \
@@ -51,6 +52,7 @@ HEADERS += \
     detection/fishdetector.h \
     detection/keypointdetector.h \
     detection/morphocalculator.h \
+    detection/fishsegmentor.h \
     serial/scaleserial.h \
     ui/mainwindow.h \
     ui/camerapreviewwidget.h \
@@ -66,6 +68,7 @@ FORMS += \
 # 模型文件路径定义
 DEFINES += \
     DETECTION_MODEL_PATH=\\\"D:/QPRO/best.onnx\\\" \
+    SEGMENT_MODEL_PATH=\\\"D:/QPRO/last.onnx\\\" \
     KEYPOINT_MODEL_PATH=\\\"D:/QPRO/fish_keypoint.onnx\\\"
 
 # 输出目录

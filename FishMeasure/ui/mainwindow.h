@@ -5,6 +5,7 @@
 #include "../core/recordmanager.h"
 #include "../camera/orbbeccamera.h"
 #include "../detection/fishdetector.h"
+#include "../detection/fishsegmentor.h"
 #include "../detection/keypointdetector.h"
 #include "../detection/morphocalculator.h"
 #include "../serial/scaleserial.h"
@@ -60,6 +61,7 @@ private:
     RecordManager recordManager_;
     OrbbecCamera camera_;
     FishDetector fishDetector_;
+    FishSegmentor fishSegmentor_;
     KeypointDetector kpDetector_;
     MorphoCalculator morphoCalc_;
     ScaleSerial scaleSerial_;

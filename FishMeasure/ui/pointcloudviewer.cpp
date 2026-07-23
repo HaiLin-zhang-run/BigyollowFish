@@ -117,7 +117,8 @@ PointCloudViewer::~PointCloudViewer() {
 void PointCloudViewer::setData(const cv::Mat& depthMat,
                                const cv::Mat& colorBgr,
                                float fx, float fy, float cx, float cy,
-                               const cv::Rect& /*roiRect*/) {
+                               const cv::Rect& /*roiRect*/,
+                               const cv::Mat& maskMat) {
 
     if (depthMat.empty() || colorBgr.empty()) {
         qDebug() << "[PC] setData: empty input";
@@ -159,6 +160,8 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
         return true;
     };
 
+    // 移除之前的深度猜测逻辑，改用直接查询 maskMat
+
     for (int v = 0; v < depthMat.rows; v += step) {
         for (int u = 0; u < depthMat.cols; u += step) {
             float X, Y, Z;
@@ -169,17 +172,28 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
             pt.y = Y;
             pt.z = Z;
 
+            bool skipPoint = false;
             // 提取真实的彩色像素
             int colorX = std::round(u * scaleX);
             int colorY = std::round(v * scaleY);
             if (colorX >= 0 && colorX < colorBgr.cols && colorY >= 0 && colorY < colorBgr.rows) {
                 cv::Vec3b bgr = colorBgr.at<cv::Vec3b>(colorY, colorX);
+                
+                // 【修改：使用分割掩码去背】
+                if (!maskMat.empty() && maskMat.type() == CV_8UC1) {
+                    if (maskMat.at<uchar>(colorY, colorX) == 0) {
+                        skipPoint = true;
+                    }
+                }
+                
                 pt.r = bgr[2] / 255.0f;
                 pt.g = bgr[1] / 255.0f;
                 pt.b = bgr[0] / 255.0f;
             } else {
                 pt.r = 1.0f; pt.g = 1.0f; pt.b = 1.0f;
             }
+            if (skipPoint) continue;
+
             // 预留伪彩色占位
             pt.jr = 1.0f; pt.jg = 1.0f; pt.jb = 1.0f;
 

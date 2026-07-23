@@ -26,7 +26,8 @@ public:
     void setData(const cv::Mat& depthMat,
                  const cv::Mat& colorBgr,
                  float fx, float cy, float cx, float fy,
-                 const cv::Rect& roiRect = cv::Rect());
+                 const cv::Rect& roiRect = cv::Rect(),
+                 const cv::Mat& maskMat = cv::Mat());
 
     bool saveToPlyBinary(const QString& filepath) const;
 
