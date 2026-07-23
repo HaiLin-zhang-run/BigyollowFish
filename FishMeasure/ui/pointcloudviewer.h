@@ -5,7 +5,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QVector3D>
-#include <QCheckBox>
+#include <QComboBox>
 #include <QResizeEvent>
 #include <opencv2/core.hpp>
 
@@ -63,8 +63,14 @@ private:
     QPoint lastMousePos_;
     
     bool dataReady_ = false;
-    bool useRealColor_ = false;
-    QCheckBox* cbRealColor_ = nullptr;
+    
+    enum class ColorMode {
+        JetLength,
+        JetDepth,
+        RealRGB
+    };
+    ColorMode colorMode_ = ColorMode::JetLength;
+    QComboBox* cbColorMode_ = nullptr;
     
     // OpenGL buffer
     unsigned int vao_ = 0;

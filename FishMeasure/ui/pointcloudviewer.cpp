@@ -92,12 +92,28 @@ static void getJetColor(float v, float vmin, float vmax, float& r, float& g, flo
 PointCloudViewer::PointCloudViewer(QWidget* parent)
     : QOpenGLWidget(parent) {
     setMinimumSize(400, 200);
-    cbRealColor_ = new QCheckBox("真实彩色 (RGB)", this);
-    cbRealColor_->setStyleSheet("QCheckBox { color: white; background: #80000000; padding: 4px; border-radius: 4px; font-weight: bold; }");
-    cbRealColor_->setChecked(false);
-    connect(cbRealColor_, &QCheckBox::toggled, this, [this](bool checked) {
-        useRealColor_ = checked;
-        if (dataReady_) {
+    cbColorMode_ = new QComboBox(this);
+    cbColorMode_->setStyleSheet("QComboBox { color: white; background: #80000000; padding: 4px; border-radius: 4px; font-weight: bold; border: 1px solid #555; }");
+    cbColorMode_->addItem("按长度映射 (X轴)", static_cast<int>(ColorMode::JetLength));
+    cbColorMode_->addItem("按深度映射 (Z轴)", static_cast<int>(ColorMode::JetDepth));
+    cbColorMode_->addItem("真实彩色 (RGB)", static_cast<int>(ColorMode::RealRGB));
+    cbColorMode_->setCurrentIndex(0);
+    
+    connect(cbColorMode_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        colorMode_ = static_cast<ColorMode>(cbColorMode_->itemData(index).toInt());
+        if (dataReady_ && !points_.empty()) {
+            if (colorMode_ != ColorMode::RealRGB) {
+                float minV = 1e9f, maxV = -1e9f;
+                for (const auto& p : points_) {
+                    float v = (colorMode_ == ColorMode::JetDepth) ? p.z : p.x;
+                    minV = std::min(minV, v);
+                    maxV = std::max(maxV, v);
+                }
+                for (auto& p : points_) {
+                    float v = (colorMode_ == ColorMode::JetDepth) ? p.z : p.x;
+                    getJetColor(v, minV, maxV, p.jr, p.jg, p.jb);
+                }
+            }
             makeCurrent();
             rebuildBuffer();
             doneCurrent();
@@ -241,10 +257,17 @@ void PointCloudViewer::setData(const cv::Mat& depthMat,
 
     qDebug() << "[PC] valid points:" << cnt << "Z range:" << minZ << "~" << maxZ;
 
-    // 二次染色：基于深度(Z)映射伪彩色 (Jet Colormap)
-    if (cnt > 0) {
+    // 二次染色：基于当前模式映射伪彩色 (Jet Colormap)
+    if (cnt > 0 && colorMode_ != ColorMode::RealRGB) {
+        float minV = 1e9f, maxV = -1e9f;
+        for (const auto& p : points_) {
+            float v = (colorMode_ == ColorMode::JetDepth) ? p.z : p.x;
+            minV = std::min(minV, v);
+            maxV = std::max(maxV, v);
+        }
         for (auto& p : points_) {
-            getJetColor(p.z, minZ, maxZ, p.jr, p.jg, p.jb);
+            float v = (colorMode_ == ColorMode::JetDepth) ? p.z : p.x;
+            getJetColor(v, minV, maxV, p.jr, p.jg, p.jb);
         }
     }
 
@@ -354,7 +377,7 @@ void PointCloudViewer::rebuildBuffer() {
     glEnableVertexAttribArray(0);
     
     // aColor (location = 1)
-    if (useRealColor_) {
+    if (colorMode_ == ColorMode::RealRGB) {
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point3D),
                               (void*)offsetof(Point3D, r));
     } else {
@@ -411,8 +434,8 @@ void PointCloudViewer::wheelEvent(QWheelEvent* e) {
 
 void PointCloudViewer::resizeEvent(QResizeEvent* e) {
     QOpenGLWidget::resizeEvent(e);
-    if (cbRealColor_) {
-        cbRealColor_->move(width() - cbRealColor_->width() - 10, 10);
+    if (cbColorMode_) {
+        cbColorMode_->move(width() - cbColorMode_->width() - 10, 10);
     }
 }
 
@@ -443,7 +466,7 @@ bool PointCloudViewer::saveToPlyBinary(const QString& filepath) const {
         plyPoints[i].x = points_[i].x;
         plyPoints[i].y = points_[i].y;
         plyPoints[i].z = points_[i].z;
-        if (useRealColor_) {
+        if (colorMode_ == ColorMode::RealRGB) {
             plyPoints[i].r = points_[i].r;
             plyPoints[i].g = points_[i].g;
             plyPoints[i].b = points_[i].b;
