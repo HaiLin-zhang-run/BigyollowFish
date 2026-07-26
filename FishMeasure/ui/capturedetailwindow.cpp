@@ -371,6 +371,7 @@ void CaptureDetailWindow::startDetection(const cv::Mat& rawBgr,
 void CaptureDetailWindow::onDetectionDone(cv::Mat annotatedBgr, cv::Mat rawBgr, cv::Mat depthMat, cv::Mat maskMat,
                                           FishMorphology morpho, FishKeypoints kps,
                                           float fx, float fy, float cx, float cy, bool hasFish)
+{
     morpho_    = morpho;
     keypoints_ = kps;
     rawBgr_    = rawBgr.clone();

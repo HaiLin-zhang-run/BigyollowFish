@@ -25,7 +25,7 @@ public:
     // 上传数据（在主线程调用）
     void setData(const cv::Mat& depthMat,
                  const cv::Mat& colorBgr,
-                 float fx, float cy, float cx, float fy,
+                 float fx, float fy, float cx, float cy,
                  const cv::Rect& roiRect = cv::Rect(),
                  const cv::Mat& maskMat = cv::Mat());
 

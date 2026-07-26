@@ -38,8 +38,15 @@ cv::Mat FishSegmentor::segment(const cv::Mat& bgrImg) {
         return cv::Mat();
     }
     
-    int features = out0Shape[1]; // 37
-    int anchors  = out0Shape[2]; // 8400
+    int features = out0Shape[1]; 
+    int anchors  = out0Shape[2]; 
+    bool isTransposed = false;
+    
+    // 如果第二维大于第三维，说明是 [1, 8400, 37] 这种转置格式
+    if (features > anchors) {
+        std::swap(features, anchors);
+        isTransposed = true;
+    }
     
     int numClasses = features - 4 - 32;
     if (numClasses <= 0) {
@@ -54,7 +61,8 @@ cv::Mat FishSegmentor::segment(const cv::Mat& bgrImg) {
 
     for (int i = 0; i < anchors; ++i) {
         for (int c = 0; c < numClasses; ++c) {
-            float conf = data0[(4 + c) * anchors + i];
+            float conf = isTransposed ? data0[i * features + (4 + c)] 
+                                      : data0[(4 + c) * anchors + i];
             if (conf > maxConf) {
                 maxConf = conf;
                 bestAnchor = i;
@@ -63,20 +71,32 @@ cv::Mat FishSegmentor::segment(const cv::Mat& bgrImg) {
         }
     }
 
-    if (maxConf < CONF_THRESH || bestAnchor < 0) {
+    qDebug() << "FishSegmentor maxConf:" << maxConf << "bestAnchor:" << bestAnchor << "bestClass:" << bestClass;
+
+    if (maxConf < 0.1f || bestAnchor < 0) {
+        qWarning() << "FishSegmentor: confidence too low, skipping mask. maxConf =" << maxConf;
         return cv::Mat(); // 未找到鱼
     }
 
     // 获取对应的最佳bbox
-    float cx = data0[0 * anchors + bestAnchor];
-    float cy = data0[1 * anchors + bestAnchor];
-    float w  = data0[2 * anchors + bestAnchor];
-    float h  = data0[3 * anchors + bestAnchor];
+    float cx, cy, w, h;
+    if (isTransposed) {
+        cx = data0[bestAnchor * features + 0];
+        cy = data0[bestAnchor * features + 1];
+        w  = data0[bestAnchor * features + 2];
+        h  = data0[bestAnchor * features + 3];
+    } else {
+        cx = data0[0 * anchors + bestAnchor];
+        cy = data0[1 * anchors + bestAnchor];
+        w  = data0[2 * anchors + bestAnchor];
+        h  = data0[3 * anchors + bestAnchor];
+    }
 
     // 获取 mask coeffs (32维)
     cv::Mat coeffs(1, 32, CV_32F);
     for (int c = 0; c < 32; ++c) {
-        coeffs.at<float>(0, c) = data0[(4 + numClasses + c) * anchors + bestAnchor];
+        coeffs.at<float>(0, c) = isTransposed ? data0[bestAnchor * features + (4 + numClasses + c)]
+                                              : data0[(4 + numClasses + c) * anchors + bestAnchor];
     }
 
     // 处理 Mask Prototype: 32 x 160 x 160
